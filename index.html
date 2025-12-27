@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+
+  <!-- PWA iOS Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Púlpito">
+  <link rel="apple-touch-icon" href="/logo-pulpito.png">
+  <title>Púlpito Dinámico v7</title>
+  <link rel="icon" type="image/x-icon" href="/logo-pulpito.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#f8fafc">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap"
+    rel="stylesheet">
+
+  <!-- PDF.js para lectura real de archivos PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Configurar Worker de PDF.js
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
+  <!-- JSZip para lectura de archivos EPUB -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    :root {
+      --font-ui: 'Inter', sans-serif;
+      --font-reading: 'Merriweather', serif;
+    }
+
+    body {
+      font-family: var(--font-ui);
+      overflow: hidden;
+      /* App-like feel */
+    }
+
+    .font-reading {
+      font-family: var(--font-reading);
+    }
+
+    /* Print Styles for Native Print Dialog */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+
+      .no-print,
+      .no-print * {
+        display: none !important;
+      }
+
+      .print-only,
+      .print-only * {
+        visibility: visible;
+        display: block !important;
+      }
+
+      /* Enforce print container positioning and colors */
+      #sermon-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 20px;
+        background-color: white !important;
+        color: black !important;
+        z-index: 9999;
+      }
+
+      /* Force black text for all children in print mode */
+      #sermon-print-area * {
+        color: black !important;
+        background-color: transparent !important;
+      }
+
+      @page {
+        margin: 2cm;
+      }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(156, 163, 175, 0.5);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(107, 114, 128, 0.8);
+    }
+
+    /* Responsive Design for Tablets (iPad) */
+    @media (min-width: 768px) and (max-width: 1024px) {
+      body {
+        font-size: 16px;
+      }
+
+      /* Adjust modal sizes for tablets */
+      .modal-container {
+        max-width: 90vw !important;
+      }
+
+      /* Better touch targets */
+      button,
+      a,
+      input,
+      select {
+        min-height: 44px;
+      }
+    }
+
+    /* Landscape orientation optimizations */
+    @media (orientation: landscape) and (max-height: 768px) {
+
+      /* Compact headers in landscape */
+      .header {
+        padding: 0.5rem !important;
+      }
+    }
+
+    /* Mobile devices */
+    @media (max-width: 767px) {
+      body {
+        font-size: 14px;
+      }
+
+      /* Stack sidebars on mobile */
+      .sidebar {
+        position: fixed !important;
+        z-index: 50;
+      }
+    }
+
+    /* Prevent text size adjustment on iOS */
+    @supports (-webkit-touch-callout: none) {
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registrado: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW error: ', registrationError);
+          });
+      });
+    }
+  </script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
