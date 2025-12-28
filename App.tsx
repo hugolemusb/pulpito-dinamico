@@ -12,6 +12,7 @@ import { CalendarView } from './components/CalendarView';
 import { Login } from './components/Login';
 import { Teleprompter } from './components/Teleprompter';
 import { InfografiaSermon } from './components/InfografiaSermon';
+import { BibleMemoryApp } from './components/BibleMemoryApp';
 import { Theme, ViewState, UserProfile, TimerState, TextSettings, AuthState } from './types';
 
 // Mock User Profile - Datos vacíos para permitir fallback al nombre del predicador del sermón
@@ -154,6 +155,8 @@ function AppContent() {
         return <Teleprompter onBack={() => handleNavigate('editor')} contentType={teleprompterType} />;
       case 'infografia':
         return <InfografiaSermon />;
+      case 'memory':
+        return <BibleMemoryApp />;
       default:
         return <Dashboard
           userProfile={{ ...USER_PROFILE, avatar: userAvatar }}

@@ -66,57 +66,78 @@ export const extractBoldWords = (html: string): string[] => {
 
   const boldWords: string[] = [];
 
-  // 1. Tags semánticos de énfasis
-  const emphasisTags = temp.querySelectorAll('strong, b, mark, em, u, .highlight');
-  emphasisTags.forEach(el => {
-    const text = el.textContent?.trim();
-    if (text && text.length > 2) {
-      boldWords.push(text);
+  // Helper to clean and add word
+  const addWord = (text?: string | null) => {
+    if (!text) return;
+    const cleaned = text.trim();
+    if (cleaned.length > 2 && !boldWords.includes(cleaned)) {
+      boldWords.push(cleaned);
     }
-  });
+  };
 
-  // 2. Elementos con color diferente (style="color:...")
+  // 1. Tags semánticos directos (negrita, subrayado, itálica, resaltado)
+  const semanticTags = temp.querySelectorAll('strong, b, mark, em, i, u, ins');
+  semanticTags.forEach(el => addWord(el.textContent));
+
+  // 2. Análisis profundo de TODOS los elementos para estilos inline
   const allElements = temp.querySelectorAll('*');
   allElements.forEach(el => {
-    const style = (el as HTMLElement).style;
-    const computedStyle = el.getAttribute('style') || '';
+    const element = el as HTMLElement;
+    const style = element.style;
+    const computedStyle = element.getAttribute('style') || '';
 
-    // Detectar color de texto diferente
+    // A. Colores de texto (color: ...)
+    // Detectamos si tiene CUALQUIER color definido inline
     if (style.color || computedStyle.includes('color:')) {
-      const text = el.textContent?.trim();
-      if (text && text.length > 2 && !boldWords.includes(text)) {
-        boldWords.push(text);
+      // Ignoramos negros/grises por defecto si se usan, pero generalmente los editores no ponen color: black explícito salvo copy-paste
+      // Asumimos que si hay un color explícito, es intencional.
+      addWord(element.textContent);
+    }
+
+    // B. Colores de fondo (background-color: ...) - "Destacador"
+    if (style.backgroundColor || computedStyle.includes('background') || computedStyle.includes('background-color')) {
+      // Ignorar blanco o transparente si llegara a aparecer
+      if (style.backgroundColor !== 'transparent' && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== '#ffffff') {
+        addWord(element.textContent);
       }
     }
 
-    // Detectar background/highlight
-    if (style.backgroundColor || computedStyle.includes('background')) {
-      const text = el.textContent?.trim();
-      if (text && text.length > 2 && !boldWords.includes(text)) {
-        boldWords.push(text);
-      }
+    // C. Negritas por estilo (font-weight)
+    if (style.fontWeight === 'bold' || parseInt(style.fontWeight) >= 600 || computedStyle.includes('font-weight: bold')) {
+      addWord(element.textContent);
     }
 
-    // Detectar tipografía diferente
-    if (style.fontWeight === 'bold' || style.fontWeight === '700' ||
-      computedStyle.includes('font-weight: bold') || computedStyle.includes('font-weight: 700')) {
-      const text = el.textContent?.trim();
-      if (text && text.length > 2 && !boldWords.includes(text)) {
-        boldWords.push(text);
+    // D. Decoración de texto (text-decoration: underline)
+    if (style.textDecoration.includes('underline') || computedStyle.includes('text-decoration: underline')) {
+      addWord(element.textContent);
+    }
+
+    // F. Subrayados simulados con border-bottom
+    if ((style.borderBottom && style.borderBottom !== 'none') || computedStyle.includes('border-bottom')) {
+      addWord(element.textContent);
+    }
+
+    // E. Tamaños de fuente grandes (headers o custom font-size)
+    if (element.tagName.match(/^H[1-6]$/) || style.fontSize) {
+      if (element.tagName.match(/^H[1-6]$/)) {
+        // Headers son destacados naturales
+        addWord(element.textContent);
+      } else if (style.fontSize && (style.fontSize.includes('pt') || style.fontSize.includes('px'))) {
+        // Si es más grande que el texto normal (asumiendo base 16px o 12pt)
+        const size = parseFloat(style.fontSize);
+        if ((style.fontSize.includes('px') && size > 18) || (style.fontSize.includes('pt') && size > 14)) {
+          addWord(element.textContent);
+        }
       }
     }
   });
 
-  // 3. Spans con clases de highlight comunes
-  const highlightClasses = temp.querySelectorAll('.text-highlight, .highlight, .emphasis, .important, .keyword');
-  highlightClasses.forEach(el => {
-    const text = el.textContent?.trim();
-    if (text && text.length > 2 && !boldWords.includes(text)) {
-      boldWords.push(text);
-    }
-  });
+  // 3. Clases específicas de editores (Quill, Tiptap, etc)
+  // ql-color-*, ql-bg-*, has-text-color, has-background
+  const editorClasses = temp.querySelectorAll('[class*="color"], [class*="bg-"], [class*="highlight"]');
+  editorClasses.forEach(el => addWord(el.textContent));
 
-  return [...new Set(boldWords)]; // Remove duplicates
+  return [...new Set(boldWords)];
 };
 
 export const extractPowerPhrases = async (sections: {
@@ -250,7 +271,8 @@ RECUERDA:
 export const generateUnifiedContent = async (
   prompt: string,
   systemInstruction?: string,
-  jsonMode: boolean = false
+  jsonMode: boolean = false,
+  temperature?: number
 ): Promise<string> => {
 
   if (!navigator.onLine) {
@@ -287,7 +309,8 @@ export const generateUnifiedContent = async (
         contents: finalPrompt,
         config: {
           systemInstruction: finalSystemInstruction,
-          responseMimeType: jsonMode ? "application/json" : "text/plain"
+          responseMimeType: jsonMode ? "application/json" : "text/plain",
+          temperature: temperature ?? 0.7
         }
       });
       return response.text || "";
@@ -693,14 +716,27 @@ export const searchVersesByTheme = async (theme: string): Promise<ThemeVerseResu
 export const refineHighlightsWithContext = async (
   highlights: string[],
   context: { title: string; mainIdea: string },
-  fullContent?: string
+  fullContent?: string,
+  variationSeed?: number
 ): Promise<string[]> => {
-  const cacheKey = `refine_${context.title}_${highlights.length}_${highlights[0] || ''}`;
-  const cached = getFromCache(CACHE_KEYS.SEARCH, cacheKey);
-  if (cached) return cached;
+  // Bypassing cache if variationSeed is present
+  const cacheKey = `refine_${context.title}_${highlights.length}_${highlights[0] || ''}_${variationSeed || ''}`;
+  if (!variationSeed) {
+    const cached = getFromCache(CACHE_KEYS.SEARCH, cacheKey);
+    if (cached) return cached;
+  }
+
+  const variationInstruction = variationSeed
+    ? `\n[VARIACIÓN CREATIVA OBLIGATORIA #${variationSeed}]:
+       - El usuario NO quiere frases motivacionales genéricas.
+       - BUSCA EN LA PROFUNDIDAD DE LA BIBLIA.
+       - Si la palabra es "Fe", dame: "Abraham saliendo sin saber a dónde iba" (Historia).
+       - Si la palabra es "Amor", dame: "Como Cristo amó a la iglesia" (Concepto).
+       - MEZCLA TIPOS DE RESPUESTA: Sinónimos potentes, Referencias a historias bíblicas (muy breves), Fragmentos de versículos clave.`
+    : "";
 
   const prompt = `
-    Actúa como un editor teológico experto.
+    Actúa como un asistente biblico avanzado.
     
     CONTEXTO DEL SERMÓN:
     Título: "${context.title}"
@@ -709,25 +745,36 @@ export const refineHighlightsWithContext = async (
     PALABRAS/FRASES DESTACADAS POR EL PREDICADOR (Raw):
     ${JSON.stringify(highlights.slice(0, 50))}
 
-    TAREA:
-    Analiza estos términos destacados y transfórmalos en 8-12 "Acciones Clave" o "Frases de Poder" coherentes y bíblicamente sólidas.
+    TAREA (INTENTO #${variationSeed}):
+    Para cada término destacado, genera una "CONEXIÓN BÍBLICA VISUAL" breve (máximo 1 línea).
+    ${variationInstruction}
+    
+    IMPORTANTE: ESTA ES UNA NUEVA SOLICITUD. IGNORA CUALQUIER RESPUESTA ANTERIOR.
+    DAME RESULTADOS DIFERENTES AHORA.
+    
+    ESTRATEGIA DE GENERACIÓN (Mezcla estos tipos):
+    1. **Sinónimos Bíblicos**: (ej: Para "Poder" -> "Dunamys / Autoridad Celestial")
+    2. **Historias Referentes**: (ej: Para "Valentía" -> "David frente a Goliat")
+    3. **Versículos Cortos**: (ej: Para "Paz" -> "La paz que sobrepasa entendimiento")
+    4. **Enseñanzas Relacionadas**: (ej: Para "Perdón" -> "Setenta veces siete")
     
     REGLAS:
-    1. **Coherencia**: Las frases deben tener sentido completo (sujeto + verbo + complemento cuando sea posible).
-    2. **Fidelidad**: Deben reflejar la esencia del sermón y los términos destacados originales.
-    3. **Impacto**: Usa lenguaje imperativo o declarativo fuerte (ej: "Activa tu fe", "Dios restaura tu vida").
-    4. **Prioridad**: Si hay términos como "Fe", "Amor", "Dios", úsalos para construir frases profundas.
-    5. **Orden**: Ordena las frases por relevancia lógica con el título del sermón.
+    - MÁXIMO 1 LÍNEA por resultado.
+    - Deben ser visualmente evocadoras.
+    - NO repitas el mismo concepto.
+    - Genera entre 8 y 12 items en total.
     
     SALIDA ESPERADA:
     Un array JSON simple de strings.
-    Ejemplo: ["Activa tu fe hoy", "Dios restaura lo perdido", "Camina en santidad"]
+    Ejemplo: ["Pedro caminando sobre el mar", "Dunamys: Poder explosivo", "No temáis manada pequeña", "La viuda y el aceite"]
     
     Responde SOLO el JSON.
   `;
 
   try {
-    const text = await generateUnifiedContent(prompt, undefined, true);
+    // Force high temperature if variationSeed is present
+    const temp = variationSeed ? 1.2 : 0.7;
+    const text = await generateUnifiedContent(prompt, undefined, true, temp);
     if (text) {
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const data = JSON.parse(cleanText);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Printer, Copy, Download, Eye, LayoutGrid, Mic, RefreshCw, FileText, Import, ArrowDownCircle } from 'lucide-react';
+import { Printer, Copy, Download, Eye, LayoutGrid, Mic, RefreshCw, FileText, Import, ArrowDownCircle, Undo, Redo } from 'lucide-react';
 import { extractPowerPhrases, PowerPhrasesResult, extractBoldWords, refineHighlightsWithContext } from '../services/geminiService';
 import { Sermon } from '../types';
 
@@ -52,8 +52,13 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
     const [sermonDate, setSermonDate] = useState('');
     const [powerPhrases, setPowerPhrases] = useState<PowerPhrasesResult | null>(null);
     const [isExtractingPhrases, setIsExtractingPhrases] = useState(false);
+    const [readActionWords, setReadActionWords] = useState<Set<string>>(new Set()); // Track read words
     const [isRefining, setIsRefining] = useState(false); // Nuevo estado para feedback visual
-    const [lastExtractedContent, setLastExtractedContent] = useState(''); // Para detectar cambios
+    const [lastExtractedContent, setLastExtractedContent] = useState(() => propSermonData?.infographicData?.lastExtractedContent || ''); // Para detectar cambios
+
+    // History for Undo/Redo
+    const [actionWordsHistory, setActionWordsHistory] = useState<string[][]>([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
 
     // Cargar desde localStorage si no hay props
     React.useEffect(() => {
@@ -90,6 +95,12 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
             setIsGenerated(saved.isGenerated);
             setLastExtractedContent(saved.lastExtractedContent || '');
 
+            // Initialize history with current words if exists
+            if (saved.extractedInfo?.actionWords?.length > 0) {
+                setActionWordsHistory([saved.extractedInfo.actionWords]);
+                setHistoryIndex(0);
+            }
+
             // Cargar textos base
             const content = sermonData.sections.map(s => `${s.title}\n${s.content}`).join('\n\n');
             setPulpitContent(content);
@@ -99,78 +110,85 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         }
     }, [sermonData?.id, sermonData?.infographicData]);
 
-    // Auto-generar infografía solo cuando cambie sermonData (NUNCA se borra al cambiar de pantalla)
+    // Auto-generar infografía solo cuando cambie sermonData
     React.useEffect(() => {
-        if (sermonData) {
-            // Extraer datos del sermón recibido
-            const content = sermonData.sections.map(s => `${s.title}\n${s.content}`).join('\n\n');
-            const contentChanged = content !== lastExtractedContent;
+        if (!sermonData) return;
 
-            // Si ya está generado y no hay cambios, no hacer nada
-            if (isGenerated && !contentChanged) return;
+        const content = sermonData.sections.map(s => `${s.title}\n${s.content}`).join('\n\n');
 
-            if (!isGenerated || contentChanged) {
-                // Actualizar contendo base
-                if (!isGenerated) {
-                    setPulpitContent(content);
-                    setSermonTitle(sermonData.title);
-                    setMainVerse(sermonData.mainVerse);
-                    setMainVerseText(sermonData.mainVerseText || '');
-                }
+        // CRITICAL: Check if we have VALID saved data first
+        // If we have saved action words, use them and DO NOT REGENERATE
+        if (sermonData.infographicData?.extractedInfo?.actionWords?.length > 0) {
+            // We have saved data, ensure state matches it
+            setExtractedInfo(prev => ({
+                ...prev,
+                ...sermonData.infographicData.extractedInfo
+            }));
+            setIsGenerated(true);
+            setLastExtractedContent(content);
+            return; // EXIT - Do not regenerate
+        }
 
-                // Generar estructura visual
-                const extractedSections = extractSections(content);
-                const info = extractKeyInfo(content);
-                const actionContent = extractActionContent(content);
+        const contentChanged = content !== lastExtractedContent;
 
-                const newSections = extractedSections;
-                const newExtractedInfo = {
-                    ...info,
-                    actionWords: actionContent.actionWords,
-                    keyVerses: actionContent.keyVerses,
-                    impactPhrases: actionContent.impactPhrases
-                };
+        // Only generate if we don't have saved data AND content is new
+        if (!isGenerated || contentChanged) {
+            // Actualizar contenido base
+            setPulpitContent(content);
+            setSermonTitle(sermonData.title);
+            setMainVerse(sermonData.mainVerse);
+            setMainVerseText(sermonData.mainVerseText || '');
 
-                setSections(newSections);
-                setExtractedInfo(newExtractedInfo);
-                setIsGenerated(true);
+            // Generar estructura visual
+            const extractedSections = extractSections(content);
+            const info = extractKeyInfo(content);
+            const actionContent = extractActionContent(content);
 
-                // Persistir estado base
-                const baseState = {
-                    sections: newSections,
-                    extractedInfo: newExtractedInfo,
-                    powerPhrases: powerPhrases,
-                    isGenerated: true,
-                    lastExtractedContent: content
-                };
-                saveChanges(baseState);
+            const newSections = extractedSections;
+            const newExtractedInfo = {
+                ...info,
+                actionWords: actionContent.actionWords,
+                keyVerses: actionContent.keyVerses,
+                impactPhrases: actionContent.impactPhrases
+            };
 
-                // Re-generar IA solo si hubo cambios reales en el texto
-                if (contentChanged) {
-                    setIsExtractingPhrases(true);
-                    setLastExtractedContent(content);
+            setSections(newSections);
+            setExtractedInfo(newExtractedInfo);
+            setIsGenerated(true);
 
-                    extractPowerPhrases({
-                        lectura: extractedSections.lectura,
-                        desarrollo: extractedSections.desarrollo,
-                        llamado: extractedSections.llamado,
-                        conclusion: extractedSections.conclusion
-                    }).then(result => {
-                        setPowerPhrases(result);
-                        setIsExtractingPhrases(false);
-                        // Guardar final
-                        saveChanges({
-                            ...baseState,
-                            powerPhrases: result
-                        });
-                    }).catch(err => {
-                        console.error('Error in power phrases:', err);
-                        setIsExtractingPhrases(false);
+            // Persistir estado base
+            const baseState = {
+                sections: newSections,
+                extractedInfo: newExtractedInfo,
+                powerPhrases: powerPhrases,
+                isGenerated: true,
+                lastExtractedContent: content
+            };
+            saveChanges(baseState);
+            setLastExtractedContent(content);
+
+            // Re-generar IA solo si hubo cambios reales en el texto
+            if (contentChanged && !isGenerated) { // Only auto-refine on first gen, not updates
+                setIsExtractingPhrases(true);
+                extractPowerPhrases({
+                    lectura: extractedSections.lectura,
+                    desarrollo: extractedSections.desarrollo,
+                    llamado: extractedSections.llamado,
+                    conclusion: extractedSections.conclusion
+                }).then(result => {
+                    setPowerPhrases(result);
+                    setIsExtractingPhrases(false);
+                    saveChanges({
+                        ...baseState,
+                        powerPhrases: result
                     });
-                }
+                }).catch(err => {
+                    console.error('Error in power phrases:', err);
+                    setIsExtractingPhrases(false);
+                });
             }
         }
-    }, [sermonData, lastExtractedContent]);
+    }, [sermonData, lastExtractedContent, isGenerated]);
 
     const seccionesPatrones = {
         lectura: /(?:lectura\s+bíblica|lectura|texto|pasaje|escritura|introducción)[\s\n:]*(.+?)(?=desarrollo|aplicación|llamado|conclusión|$)/is,
@@ -441,6 +459,24 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         setMainVerseText('');
         setSpeaker('');
         setSermonDate('');
+        setActionWordsHistory([]);
+        setHistoryIndex(-1);
+    };
+
+    const handleUndo = () => {
+        if (historyIndex > 0) {
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            setExtractedInfo(prev => ({ ...prev, actionWords: actionWordsHistory[newIndex] }));
+        }
+    };
+
+    const handleRedo = () => {
+        if (historyIndex < actionWordsHistory.length - 1) {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setExtractedInfo(prev => ({ ...prev, actionWords: actionWordsHistory[newIndex] }));
+        }
     };
 
     const handleRefreshHighlights = async () => {
@@ -458,14 +494,25 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
             }
 
             // 2. Refinar con IA para obtener frases coherentes y bíblicas
+            // Pass a random seed to get variations
+            const variationSeed = Date.now();
             const refinedPhrases = await refineHighlightsWithContext(
                 highlighted,
-                { title: sermonTitle, mainIdea: mainIdea }
+                { title: sermonTitle, mainIdea: mainIdea },
+                undefined,
+                variationSeed
             );
 
-            // 3. Actualizar estado
+            // 3. Actualizar estado e historial
             const newInfo = { ...extractedInfo, actionWords: refinedPhrases };
             setExtractedInfo(newInfo);
+
+            setActionWordsHistory(prev => {
+                const newHistory = prev.slice(0, historyIndex + 1);
+                return [...newHistory, refinedPhrases];
+            });
+            setHistoryIndex(prev => prev + 1);
+
 
             // Guardar cambios
             if (sermonData) {
@@ -602,6 +649,44 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         URL.revokeObjectURL(url);
     };
 
+    const handleToggleActionWord = (word: string) => {
+        setReadActionWords(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(word)) {
+                newSet.delete(word);
+            } else {
+                newSet.add(word);
+            }
+            return newSet;
+        });
+    };
+
+    const renderActionWord = (word: string, index: number, extraClasses: string = "") => {
+        const isRead = readActionWords.has(word);
+
+        // Color suave para lectura cómoda (Papel grisáceo con tinta oscura)
+        const unreadBg = '#e2e8f0'; // Slate 200
+        const unreadText = '#0f172a'; // Slate 900
+
+        // Formato Sentence Case (Primera mayúscula, resto minúscula)
+        const formattedWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+        return (
+            <span
+                key={index}
+                onClick={() => handleToggleActionWord(word)}
+                className={`px-6 py-3 rounded-2xl text-2xl font-black shadow-md transform transition-transform cursor-pointer select-none border-2
+                ${isRead
+                        ? 'bg-transparent text-gray-300 border-gray-200 shadow-none scale-95'
+                        : 'hover:scale-105 hover:bg-slate-300 border-transparent'} 
+                ${extraClasses}`}
+                style={isRead ? {} : { backgroundColor: unreadBg, color: unreadText }}
+            >
+                {formattedWord}
+            </span>
+        );
+    };
+
     const idea = mainIdea || sermonTitle || 'Transformando vidas a través de la Palabra';
 
     const sectionConfig = {
@@ -710,6 +795,24 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                             >
                                 <RefreshCw className="w-5 h-5" />
                                 Limpiar
+                            </button>
+
+                            <button
+                                onClick={handleUndo}
+                                disabled={historyIndex <= 0}
+                                className={`p-3 rounded-lg border-2 ${historyIndex <= 0 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400'}`}
+                                title="Deshacer cambio"
+                            >
+                                <Undo className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={handleRedo}
+                                disabled={historyIndex < 0 || historyIndex >= actionWordsHistory.length - 1}
+                                className={`p-3 rounded-lg border-2 ${historyIndex < 0 || historyIndex >= actionWordsHistory.length - 1 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400'}`}
+                                title="Rehacer cambio"
+                            >
+                                <Redo className="w-5 h-5" />
                             </button>
 
                             <button
@@ -824,15 +927,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                     <div className="text-center mb-6">
                                         <h4 className="font-bold text-purple-800 mb-3">🎯 ACCIONES CLAVE</h4>
                                         <div className="flex flex-wrap justify-center gap-2">
-                                            {extractedInfo.actionWords.map((word, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-4 py-2 rounded-full text-white font-black shadow-md"
-                                                    style={{ background: ['#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#2563eb', '#7c3aed'][i % 6] }}
-                                                >
-                                                    {word.toUpperCase()}
-                                                </span>
-                                            ))}
+                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-xl px-4 py-2"))}
                                         </div>
                                     </div>
                                 )}
@@ -900,16 +995,8 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                 {/* Palabras de Acción en órbita */}
                                 {extractedInfo.actionWords.length > 0 && (
                                     <div className="text-center">
-                                        <div className="inline-flex flex-wrap justify-center gap-3 p-4 bg-purple-100 rounded-full">
-                                            {extractedInfo.actionWords.map((word, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-4 py-2 rounded-full font-black text-white shadow"
-                                                    style={{ background: ['#7c3aed', '#ec4899', '#06b6d4', '#10b981'][i % 4] }}
-                                                >
-                                                    {word.toUpperCase()}
-                                                </span>
-                                            ))}
+                                        <div className="inline-flex flex-wrap justify-center gap-3 p-4 bg-purple-100 rounded-3xl">
+                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-lg px-4 py-2"))}
                                         </div>
                                     </div>
                                 )}
@@ -1002,14 +1089,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                     <div className="text-center">
                                         <h4 className="font-bold text-gray-700 mb-3">🔥 ACCIONES</h4>
                                         <div className="flex flex-wrap justify-center gap-2">
-                                            {extractedInfo.actionWords.map((word, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-4 py-2 bg-gray-800 text-white rounded-lg font-bold shadow"
-                                                >
-                                                    {word.toUpperCase()}
-                                                </span>
-                                            ))}
+                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-sm px-3 py-1"))}
                                         </div>
                                     </div>
                                 )}
@@ -1040,18 +1120,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                     <div className="mb-8 text-center">
                                         <h3 className="text-2xl font-bold text-yellow-400 mb-4">🎯 PALABRAS CLAVE</h3>
                                         <div className="flex flex-wrap justify-center gap-4">
-                                            {extractedInfo.actionWords.map((word, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-6 py-3 rounded-2xl text-2xl font-black shadow-lg transform hover:scale-105 transition-transform"
-                                                    style={{
-                                                        background: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'][i % 8],
-                                                        color: 'white'
-                                                    }}
-                                                >
-                                                    {word.toUpperCase()}
-                                                </span>
-                                            ))}
+                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i))}
                                         </div>
                                     </div>
                                 )}
@@ -1224,16 +1293,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                     <div className="mt-10 p-6 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl">
                                         <h3 className="font-bold text-purple-800 text-center mb-4">🎯 PALABRAS DE ACCIÓN A TRAVÉS DEL MENSAJE</h3>
                                         <div className="flex flex-wrap justify-center gap-2">
-                                            {extractedInfo.actionWords.map((word, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="px-4 py-2 bg-white rounded-full shadow-md flex items-center gap-2"
-                                                    style={{ border: `2px solid ${['#3498db', '#27ae60', '#e67e22', '#8e44ad', '#e74c3c', '#1abc9c', '#f39c12', '#9b59b6'][i % 8]}` }}
-                                                >
-                                                    <span className="w-3 h-3 rounded-full" style={{ background: ['#3498db', '#27ae60', '#e67e22', '#8e44ad', '#e74c3c', '#1abc9c', '#f39c12', '#9b59b6'][i % 8] }}></span>
-                                                    <span className="font-semibold text-gray-800">• {word}</span>
-                                                </div>
-                                            ))}
+                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-base px-4 py-2"))}
                                         </div>
                                     </div>
 

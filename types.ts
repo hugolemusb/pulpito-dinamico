@@ -171,7 +171,7 @@ export interface TimerState {
   totalDuration: number;
 }
 
-export type ViewState = 'dashboard' | 'search' | 'editor' | 'bible' | 'library' | 'teleprompter' | 'calendar' | 'infografia';
+export type ViewState = 'dashboard' | 'search' | 'editor' | 'bible' | 'library' | 'teleprompter' | 'calendar' | 'infografia' | 'memory';
 
 export type AIProvider = 'gemini' | 'external';
 
