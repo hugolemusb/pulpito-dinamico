@@ -72,81 +72,166 @@ const VERSES_DATABASE: VerseDatabase = {
         { ref: "Hechos 4:12", text: "Y en ningún otro hay salvación; porque no hay otro nombre bajo el cielo, dado a los hombres, en que podamos ser salvos", book: "NT", theme: "salvacion", difficulty: "intermedio" },
         { ref: "Efesios 2:8-9", text: "Porque por gracia sois salvos por medio de la fe; y esto no de vosotros, pues es don de Dios; no por obras, para que nadie se gloríe", book: "NT", theme: "salvacion", difficulty: "avanzado" },
         { ref: "1 Juan 1:9", text: "Si confesamos nuestros pecados, él es fiel y justo para perdonar nuestros pecados, y limpiarnos de toda maldad", book: "NT", theme: "salvacion", difficulty: "intermedio" },
+        { ref: "Romanos 5:8", text: "Mas Dios muestra su amor para con nosotros, en que siendo aún pecadores, Cristo murió por nosotros", book: "NT", theme: "salvacion", difficulty: "intermedio" },
+        { ref: "Juan 14:6", text: "Jesús le dijo: Yo soy el camino, y la verdad, y la vida; nadie viene al Padre, sino por mí", book: "NT", theme: "salvacion", difficulty: "principiante" },
+        { ref: "Romanos 10:9", text: "Que si confesares con tu boca que Jesús es el Señor, y creyeres en tu corazón que Dios le levantó de los muertos, serás salvo", book: "NT", theme: "salvacion", difficulty: "avanzado" },
+        { ref: "Hechos 16:31", text: "Cree en el Señor Jesucristo, y serás salvo, tú y tu casa", book: "NT", theme: "salvacion", difficulty: "principiante" },
 
         // FORTALEZA
         { ref: "Filipenses 4:13", text: "Todo lo puedo en Cristo que me fortalece", book: "NT", theme: "fortaleza", difficulty: "principiante" },
         { ref: "Isaías 40:31", text: "Pero los que esperan a Jehová tendrán nuevas fuerzas; levantarán alas como las águilas; correrán, y no se cansarán; caminarán, y no se fatigarán", book: "AT", theme: "fortaleza", difficulty: "avanzado" },
         { ref: "Salmos 27:1", text: "Jehová es mi luz y mi salvación; ¿de quién temeré? Jehová es la fortaleza de mi vida; ¿de quién he de atemorizarme?", book: "AT", theme: "fortaleza", difficulty: "intermedio" },
-        { ref: "Josué 1:9", text: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo en dondequiera que vayas", book: "AT", theme: "fortaleza", difficulty: "intermedio" },
         { ref: "Nehemías 8:10", text: "No os entristezcáis, porque el gozo de Jehová es vuestra fuerza", book: "AT", theme: "fortaleza", difficulty: "principiante" },
+        { ref: "Salmos 46:1", text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones", book: "AT", theme: "fortaleza", difficulty: "principiante" },
+        { ref: "Isaías 41:10", text: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios que te esfuerzo; siempre te ayudaré", book: "AT", theme: "fortaleza", difficulty: "intermedio" },
+        { ref: "Exodo 15:2", text: "Jehová es mi fortaleza y mi cántico, Y ha sido mi salvación", book: "AT", theme: "fortaleza", difficulty: "intermedio" },
+        { ref: "2 Corintios 12:10", text: "Por lo cual, por amor a Cristo me gozo en las debilidades, en afrentas, en necesidades, en persecuciones, en angustias; porque cuando soy débil, entonces soy fuerte", book: "NT", theme: "fortaleza", difficulty: "avanzado" },
+        { ref: "Salmos 18:2", text: "Jehová, roca mía y castillo mío, y mi libertador; Dios mío, fortaleza mía, en él confiaré", book: "AT", theme: "fortaleza", difficulty: "intermedio" },
+        { ref: "Efesios 6:10", text: "Por lo demás, hermanos míos, fortaleceos en el Señor, y en el poder de su fuerza", book: "NT", theme: "fortaleza", difficulty: "intermedio" },
 
         // CONFIANZA
         { ref: "Salmos 23:1", text: "Jehová es mi pastor; nada me faltará", book: "AT", theme: "confianza", difficulty: "principiante" },
         { ref: "Proverbios 3:5-6", text: "Fíate de Jehová de todo tu corazón, y no te apoyes en tu propia prudencia. Reconócelo en todos tus caminos, y él enderezará tus veredas", book: "AT", theme: "confianza", difficulty: "intermedio" },
-        { ref: "Isaías 41:10", text: "No temas, porque yo estoy contigo; no desmayes, porque yo soy tu Dios que te esfuerzo; siempre te ayudaré, siempre te sustentaré con la diestra de mi justicia", book: "AT", theme: "confianza", difficulty: "avanzado" },
-        { ref: "Salmos 46:1", text: "Dios es nuestro amparo y fortaleza, nuestro pronto auxilio en las tribulaciones", book: "AT", theme: "confianza", difficulty: "principiante" },
         { ref: "Salmos 56:3", text: "En el día que temo, Yo en ti confío", book: "AT", theme: "confianza", difficulty: "principiante" },
+        { ref: "Jeremías 17:7", text: "Bendito el varón que confía en Jehová, y cuya confianza es Jehová", book: "AT", theme: "confianza", difficulty: "intermedio" },
+        { ref: "Salmos 37:5", text: "Encomienda a Jehová tu camino, Y confía en él; y él hará", book: "AT", theme: "confianza", difficulty: "principiante" },
+        { ref: "Isaías 26:3", text: "Tú guardarás en completa paz a aquel cuyo pensamiento en ti persevera; porque en ti ha confiado", book: "AT", theme: "confianza", difficulty: "avanzado" },
+        { ref: "Salmos 9:10", text: "En ti confiarán los que conocen tu nombre, Por cuanto tú, oh Jehová, no desamparaste a los que te buscaron", book: "AT", theme: "confianza", difficulty: "intermedio" },
+        { ref: "Salmos 125:1", text: "Los que confían en Jehová son como el monte de Sion, Que no se mueve, sino que permanece para siempre", book: "AT", theme: "confianza", difficulty: "intermedio" },
+        { ref: "Hebreos 13:6", text: "De manera que podemos decir confiadamente: El Señor es mi ayudador; no temeré lo que me pueda hacer el hombre", book: "NT", theme: "confianza", difficulty: "avanzado" },
+        { ref: "Salmos 118:8", text: "Mejor es confiar en Jehová Que confiar en el hombre", book: "AT", theme: "confianza", difficulty: "principiante" },
 
         // SABIDURÍA
         { ref: "Santiago 1:5", text: "Y si alguno de vosotros tiene falta de sabiduría, pídala a Dios, el cual da a todos abundantemente y sin reproche, y le será dada", book: "NT", theme: "sabiduria", difficulty: "intermedio" },
         { ref: "Proverbios 1:7", text: "El principio de la sabiduría es el temor de Jehová; Los insensatos desprecian la sabiduría y la enseñanza", book: "AT", theme: "sabiduria", difficulty: "intermedio" },
         { ref: "Colosenses 3:16", text: "La palabra de Cristo more en abundancia en vosotros, enseñándoos y exhortándoos unos a otros en toda sabiduría", book: "NT", theme: "sabiduria", difficulty: "avanzado" },
         { ref: "Proverbios 9:10", text: "El temor de Jehová es el principio de la sabiduría, Y el conocimiento del Santísimo es la inteligencia", book: "AT", theme: "sabiduria", difficulty: "intermedio" },
+        { ref: "Santiago 3:17", text: "Pero la sabiduría que es de lo alto es primeramente pura, después pacífica, amable, benigna, llena de misericordia y de buenos frutos", book: "NT", theme: "sabiduria", difficulty: "avanzado" },
+        { ref: "Proverbios 3:13", text: "Bienaventurado el hombre que halla la sabiduría, y que obtiene la inteligencia", book: "AT", theme: "sabiduria", difficulty: "principiante" },
+        { ref: "Colosenses 2:3", text: "En quien están escondidos todos los tesoros de la sabiduría y del conocimiento", book: "NT", theme: "sabiduria", difficulty: "intermedio" },
+        { ref: "Salmos 111:10", text: "El principio de la sabiduría es el temor de Jehová; Buen entendimiento tienen todos los que practican sus mandamientos", book: "AT", theme: "sabiduria", difficulty: "avanzado" },
+        { ref: "Proverbios 16:16", text: "Mejor es adquirir sabiduría que oro preciado; Y adquirir inteligencia vale más que la plata", book: "AT", theme: "sabiduria", difficulty: "intermedio" },
+        { ref: "Eclesiastés 7:12", text: "Porque escudo es la ciencia, y escudo es el dinero; mas la sabiduría excede, en que da vida a sus poseedores", book: "AT", theme: "sabiduria", difficulty: "avanzado" },
 
         // ESPERANZA
         { ref: "Jeremías 29:11", text: "Porque yo sé los pensamientos que tengo acerca de vosotros, dice Jehová, pensamientos de paz, y no de mal, para daros el fin que esperáis", book: "AT", theme: "esperanza", difficulty: "intermedio" },
         { ref: "Romanos 15:13", text: "Y el Dios de esperanza os llene de todo gozo y paz en el creer, para que abundéis en esperanza por el poder del Espíritu Santo", book: "NT", theme: "esperanza", difficulty: "avanzado" },
         { ref: "Lamentaciones 3:22-23", text: "Por la misericordia de Jehová no hemos sido consumidos, porque nunca decayeron sus misericordias. Nuevas son cada mañana; grande es tu fidelidad", book: "AT", theme: "esperanza", difficulty: "avanzado" },
         { ref: "Hebreos 10:23", text: "Mantengamos firme, sin fluctuar, la profesión de nuestra esperanza, porque fiel es el que prometió", book: "NT", theme: "esperanza", difficulty: "intermedio" },
+        { ref: "Salmos 119:114", text: "Mi escondedero y mi escudo eres tú; En tu palabra he esperado", book: "AT", theme: "esperanza", difficulty: "intermedio" },
+        { ref: "Romanos 5:5", text: "Y la esperanza no avergüenza; porque el amor de Dios ha sido derramado en nuestros corazones", book: "NT", theme: "esperanza", difficulty: "avanzado" },
+        { ref: "Salmos 39:7", text: "Y ahora, Señor, ¿qué esperaré? Mi esperanza está en ti", book: "AT", theme: "esperanza", difficulty: "principiante" },
+        { ref: "Salmos 71:5", text: "Porque tú, oh Señor Jehová, eres mi esperanza, Seguridad mía desde mi juventud", book: "AT", theme: "esperanza", difficulty: "intermedio" },
+        { ref: "1 Pedro 1:3", text: "Bendito el Dios y Padre de nuestro Señor Jesucristo, que según su grande misericordia nos hizo renacer para una esperanza viva", book: "NT", theme: "esperanza", difficulty: "avanzado" },
+        { ref: "Salmos 42:11", text: "¿Por qué te abates, oh alma mía? Espera en Dios; porque aún he de alabarle", book: "AT", theme: "esperanza", difficulty: "intermedio" },
 
         // FE
         { ref: "Hebreos 11:1", text: "Es, pues, la fe la certeza de lo que se espera, la convicción de lo que no se ve", book: "NT", theme: "fe", difficulty: "intermedio" },
         { ref: "Romanos 10:17", text: "Así que la fe es por el oír, y el oír, por la palabra de Dios", book: "NT", theme: "fe", difficulty: "principiante" },
         { ref: "Marcos 11:24", text: "Por tanto, os digo que todo lo que pidiereis orando, creed que lo recibiréis, y os vendrá", book: "NT", theme: "fe", difficulty: "intermedio" },
         { ref: "2 Corintios 5:7", text: "Porque por fe andamos, no por vista", book: "NT", theme: "fe", difficulty: "principiante" },
+        { ref: "Gálatas 2:20", text: "Lo que ahora vivo en la carne, lo vivo en la fe del Hijo de Dios, el cual me amó y se entregó a sí mismo por mí", book: "NT", theme: "fe", difficulty: "avanzado" },
+        { ref: "Jeremías 33:3", text: "Clama a mí, y yo te responderé, y te enseñaré cosas grandes y ocultas que tú no conoces", book: "AT", theme: "fe", difficulty: "intermedio" },
+        { ref: "Hebreos 11:6", text: "Pero sin fe es imposible agradar a Dios; porque es necesario que el que se acerca a Dios crea que le hay, y que es galardonador de los que le buscan", book: "NT", theme: "fe", difficulty: "avanzado" },
+        { ref: "Mateo 21:22", text: "Y todo lo que pidiereis en oración, creyendo, lo recibiréis", book: "NT", theme: "fe", difficulty: "principiante" },
+        { ref: "Efesios 6:16", text: "Sobre todo, tomad el escudo de la fe, con que podáis apagar todos los dardos de fuego del maligno", book: "NT", theme: "fe", difficulty: "avanzado" },
+        { ref: "1 Juan 5:4", text: "Porque todo lo que es nacido de Dios vence al mundo; y esta es la victoria que ha vencido al mundo, nuestra fe", book: "NT", theme: "fe", difficulty: "intermedio" },
 
         // AMOR
         { ref: "1 Juan 4:8", text: "El que no ama, no ha conocido a Dios; porque Dios es amor", book: "NT", theme: "amor", difficulty: "principiante" },
         { ref: "1 Corintios 13:4", text: "El amor es sufrido, es benigno; el amor no tiene envidia, el amor no es jactancioso, no se envanece", book: "NT", theme: "amor", difficulty: "intermedio" },
         { ref: "Juan 13:34", text: "Un mandamiento nuevo os doy: Que os améis unos a otros; como yo os he amado, que también os améis unos a otros", book: "NT", theme: "amor", difficulty: "intermedio" },
         { ref: "Romanos 5:8", text: "Mas Dios muestra su amor para con nosotros, en que siendo aún pecadores, Cristo murió por nosotros", book: "NT", theme: "amor", difficulty: "intermedio" },
+        { ref: "1 Corintios 16:14", text: "Todas vuestras cosas sean hechas con amor", book: "NT", theme: "amor", difficulty: "principiante" },
+        { ref: "Colosenses 3:14", text: "Y sobre todas estas cosas vestíos de amor, que es el vínculo perfecto", book: "NT", theme: "amor", difficulty: "intermedio" },
+        { ref: "1 Pedro 4:8", text: "Y ante todo, tened entre vosotros ferviente amor; porque el amor cubrirá multitud de pecados", book: "NT", theme: "amor", difficulty: "intermedio" },
+        { ref: "1 Juan 4:19", text: "Nosotros le amamos a él, porque él nos amó primero", book: "NT", theme: "amor", difficulty: "principiante" },
+        { ref: "Romanos 8:39", text: "Ni lo alto, ni lo profundo, ni ninguna otra cosa creada nos podrá separar del amor de Dios, que es en Cristo Jesús Señor nuestro", book: "NT", theme: "amor", difficulty: "avanzado" },
+        { ref: "Juan 15:13", text: "Nadie tiene mayor amor que este, que uno ponga su vida por su amigos", book: "NT", theme: "amor", difficulty: "intermedio" },
 
-        // MISIÓN / OBEDIENCIA
+        // MISIÓN / TESTIMONIO
         { ref: "Mateo 28:19", text: "Por tanto, id, y haced discípulos a todas las naciones, bautizándolos en el nombre del Padre, y del Hijo, y del Espíritu Santo", book: "NT", theme: "mision", difficulty: "intermedio" },
         { ref: "Hechos 1:8", text: "Pero recibiréis poder, cuando haya venido sobre vosotros el Espíritu Santo, y me seréis testigos en Jerusalén, en toda Judea, en Samaria, y hasta lo último de la tierra", book: "NT", theme: "mision", difficulty: "avanzado" },
         { ref: "Santiago 1:22", text: "Pero sed hacedores de la palabra, y no tan solamente oidores, engañándoos a vosotros mismos", book: "NT", theme: "mision", difficulty: "intermedio" },
         { ref: "Juan 14:15", text: "Si me amáis, guardad mis mandamientos", book: "NT", theme: "mision", difficulty: "principiante" },
-
-        // TESTIMONIO (Expanded)
         { ref: "Mateo 5:16", text: "Así alumbre vuestra luz delante de los hombres, para que vean vuestras buenas obras, y glorifiquen a vuestro Padre que está en los cielos", book: "NT", theme: "testimonio", difficulty: "intermedio" },
-        { ref: "1 Pedro 3:15", text: "Sino santificad a Dios el Señor en vuestros corazones, y estad siempre preparados para presentar defensa con mansedumbre y reverencia", book: "NT", theme: "testimonio", difficulty: "avanzado" },
+        { ref: "1 Pedro 3:15", text: "Sino santificad a Dios el Señor en vuestros corazones, y estad siempre preparados para presentar defensa con mansedumbre", book: "NT", theme: "testimonio", difficulty: "avanzado" },
         { ref: "Hechos 22:15", text: "Porque serás testigo suyo a todos los hombres, de lo que has visto y oído", book: "NT", theme: "testimonio", difficulty: "intermedio" },
         { ref: "Marcos 16:15", text: "Id por todo el mundo y predicad el evangelio a toda criatura", book: "NT", theme: "testimonio", difficulty: "principiante" },
         { ref: "2 Timoteo 1:8", text: "Por tanto, no te avergüences de dar testimonio de nuestro Señor", book: "NT", theme: "testimonio", difficulty: "principiante" },
+        { ref: "Romanos 1:16", text: "Porque no me avergüenzo del evangelio, porque es poder de Dios para salvación a todo aquel que cree", book: "NT", theme: "testimonio", difficulty: "avanzado" },
 
-        // FE, AMOR, ESPERANZA (Adding variety)
-        { ref: "1 Corintios 16:14", text: "Todas vuestras cosas sean hechas con amor", book: "NT", theme: "amor", difficulty: "principiante" },
-        { ref: "Colosenses 3:14", text: "Y sobre todas estas cosas vestíos de amor, que es el vínculo perfecto", book: "NT", theme: "amor", difficulty: "intermedio" },
-        { ref: "1 Pedro 4:8", text: "Y ante todo, tened entre vosotros ferviente amor; porque el amor cubrirá multitud de pecados", book: "NT", theme: "amor", difficulty: "intermedio" },
-        { ref: "Salmos 119:114", text: "Mi escondedero y mi escudo eres tú; En tu palabra he esperado", book: "AT", theme: "esperanza", difficulty: "intermedio" },
-        { ref: "Romanos 5:5", text: "Y la esperanza no avergüenza; porque el amor de Dios ha sido derramado en nuestros corazones", book: "NT", theme: "esperanza", difficulty: "avanzado" },
-        { ref: "Gálatas 2:20", text: "Lo que ahora vivo en la carne, lo vivo en la fe del Hijo de Dios, el cual me amó y se entregó a sí mismo por mí", book: "NT", theme: "fe", difficulty: "avanzado" },
-
-        // ESCRITURA (Expanded)
+        // ESCRITURA / GUÍA
         { ref: "2 Timoteo 3:16", text: "Toda la Escritura es inspirada por Dios, y útil para enseñar, para redargüir, para corregir, para instruir en justicia", book: "NT", theme: "escritura", difficulty: "avanzado" },
         { ref: "Hebreos 4:12", text: "Porque la palabra de Dios es viva y eficaz, y más cortante que toda espada de dos filos", book: "NT", theme: "escritura", difficulty: "intermedio" },
         { ref: "Josué 1:8", text: "Nunca se apartará de tu boca este libro de la ley, sino que de día y de noche meditarás en él", book: "AT", theme: "escritura", difficulty: "avanzado" },
         { ref: "Génesis 1:1", text: "En el principio creó Dios los cielos y la tierra", book: "AT", theme: "escritura", difficulty: "principiante" },
+        { ref: "Salmos 119:105", text: "Lámpara es a mis pies tu palabra, y lumbrera a mi camino", book: "AT", theme: "guia", difficulty: "principiante" },
+        { ref: "Salmos 32:8", text: "Te haré entender, y te enseñaré el camino en que debes andar; Sobre ti fijaré mis ojos", book: "AT", theme: "guia", difficulty: "intermedio" },
         { ref: "Salmos 48:14", text: "Porque este Dios es Dios nuestro eternamente y para siempre; Él nos guiará aún más allá de la muerte", book: "AT", theme: "guia", difficulty: "intermedio" },
-        { ref: "Isaías 30:21", text: "Entonces tus oídos oirán a tus espaldas palabra que diga: Este es el camino, andad por él; y no echéis a la mano derecha, ni tampoco a la mano izquierda", book: "AT", theme: "guia", difficulty: "avanzado" },
+        { ref: "Isaías 30:21", text: "Entonces tus oídos oirán a tus espaldas palabra que diga: Este es el camino, andad por él", book: "AT", theme: "guia", difficulty: "avanzado" },
         { ref: "Juan 16:13", text: "Pero cuando venga el Espíritu de verdad, él os guiará a toda la verdad", book: "NT", theme: "guia", difficulty: "intermedio" },
+        { ref: "Salmos 119:11", text: "En mi corazón he guardado tus dichos, Para no pecar contra ti", book: "AT", theme: "escritura", difficulty: "intermedio" },
 
-        // MISSING STUDY PLAN VERSES
-        { ref: "Jeremías 33:3", text: "Clama a mí, y yo te responderé, y te enseñaré cosas grandes y ocultas que tú no conoces", book: "AT", theme: "fe", difficulty: "intermedio" },
-        { ref: "2 Corintios 5:17", text: "De modo que si alguno está en Cristo, nueva criatura es; las cosas viejas pasaron; he aquí todas son hechas nuevas", book: "NT", theme: "transformacion", difficulty: "intermedio" },
+        // PROTECCIÓN
+        { ref: "Efesios 6:11", text: "Vestíos de toda la armadura de Dios, para que podáis estar firmes contra las asechanzas del diablo", book: "NT", theme: "proteccion", difficulty: "intermedio" },
+        { ref: "Salmos 91:1", text: "El que habita al abrigo del Altísimo morará bajo la sombra del Omnipotente", book: "AT", theme: "proteccion", difficulty: "intermedio" },
+        { ref: "Salmos 91:11", text: "Pues a sus ángeles mandará acerca de ti, que te guarden en todos tus caminos", book: "AT", theme: "proteccion", difficulty: "principiante" },
+        { ref: "Salmos 121:7", text: "Jehová te guardará de todo mal; El guardará tu alma", book: "AT", theme: "proteccion", difficulty: "principiante" },
+        { ref: "Proverbios 18:10", text: "Torre fuerte es el nombre de Jehová; A él correrá el justo, y será levantado", book: "AT", theme: "proteccion", difficulty: "intermedio" },
+        { ref: "2 Tesalonicenses 3:3", text: "Pero fiel es el Señor, que os afirmará y guardará del mal", book: "NT", theme: "proteccion", difficulty: "intermedio" },
+        { ref: "Isaías 54:17", text: "Ninguna arma forjada contra ti prosperará, y condenarás toda lengua que se levante contra ti en juicio", book: "AT", theme: "proteccion", difficulty: "avanzado" },
+        { ref: "Salmos 121:1-2", text: "Alzaré mis ojos a los montes; ¿De dónde vendrá mi socorro? Mi socorro viene de Jehová, Que hizo los cielos y la tierra", book: "AT", theme: "proteccion", difficulty: "avanzado" },
+        { ref: "Salmos 34:7", text: "El ángel de Jehová acampa alrededor de los que le temen, Y los defiende", book: "AT", theme: "proteccion", difficulty: "intermedio" },
+        { ref: "Salmos 18:30", text: "En cuanto a Dios, perfecto es su camino, Y acrisolada la palabra de Jehová; Escudo es a todos los que en él esperan", book: "AT", theme: "proteccion", difficulty: "avanzado" },
+
+        // TRANSFORMACIÓN / FRUTO
         { ref: "Romanos 12:2", text: "No os conforméis a este siglo, sino transformaos por medio de la renovación de vuestro entendimiento", book: "NT", theme: "transformacion", difficulty: "intermedio" },
-        { ref: "Ezequiel 36:26", text: "Os daré corazón nuevo, y pondré espíritu nuevo dentro de vosotros; y quitaré de vuestra carne el corazón de piedra, y os daré un corazón de carne", book: "AT", theme: "transformacion", difficulty: "avanzado" },
+        { ref: "2 Corintios 5:17", text: "De modo que si alguno está en Cristo, nueva criatura es; las cosas viejas pasaron; he aquí todas son hechas nuevas", book: "NT", theme: "transformacion", difficulty: "intermedio" },
+        { ref: "Ezequiel 36:26", text: "Os daré corazón nuevo, y pondré espíritu nuevo dentro de vosotros", book: "AT", theme: "transformacion", difficulty: "avanzado" },
         { ref: "Filipenses 1:6", text: "Estando persuadido de esto, que el que comenzó en vosotros la buena obra, la perfeccionará hasta el día de Jesucristo", book: "NT", theme: "transformacion", difficulty: "intermedio" },
+        { ref: "Gálatas 5:22-23", text: "Mas el fruto del Espíritu es amor, gozo, paz, paciencia, benignidad, bondad, fe, mansedumbre, templanza", book: "NT", theme: "fruto", difficulty: "avanzado" },
+        { ref: "Juan 15:5", text: "Yo soy la vid, vosotros los pámpanos; el que permanece en mí, y yo en él, éste lleva mucho fruto", book: "NT", theme: "fruto", difficulty: "intermedio" },
+        { ref: "Mateo 7:17", text: "Así, todo buen árbol da buenos frutos, pero el árbol malo da frutos malos", book: "NT", theme: "fruto", difficulty: "principiante" },
+        { ref: "Salmos 1:3", text: "Será como árbol plantado junto a corrientes de aguas, Que da su fruto en su tiempo, Y su hoja no cae", book: "AT", theme: "fruto", difficulty: "avanzado" },
+        { ref: "Gálatas 2:19-20", text: "Porque yo por la ley soy muerto para la ley, a fin de vivir para Dios", book: "NT", theme: "transformacion", difficulty: "avanzado" },
+        { ref: "Colosenses 3:10", text: "Y revestido del nuevo, el cual conforme a la imagen del que lo creó se va renovando hasta el conocimiento pleno", book: "NT", theme: "transformacion", difficulty: "avanzado" },
+
+        // VALENTÍA
+        { ref: "Josué 1:9", text: "Mira que te mando que te esfuerces y seas valiente; no temas ni desmayes, porque Jehová tu Dios estará contigo", book: "AT", theme: "valentia", difficulty: "intermedio" },
+        { ref: "Salmos 27:14", text: "Aguarda a Jehová; Esfuérzate, y aliéntese tu corazón; Sí, espera a Jehová", book: "AT", theme: "valentia", difficulty: "principiante" },
+        { ref: "2 Timoteo 1:7", text: "Porque no nos ha dado Dios espíritu de cobardía, sino de poder, de amor y de dominio propio", book: "NT", theme: "valentia", difficulty: "intermedio" },
+        { ref: "Deuteronomio 31:6", text: "Esforzaos y cobrad ánimo; no temáis, ni tengáis miedo de ellos, porque Jehová tu Dios es el que va contigo", book: "AT", theme: "valentia", difficulty: "avanzado" },
+        { ref: "Salmos 31:24", text: "Esforzaos todos vosotros los que esperáis en Jehová, y tome aliento vuestro corazón", book: "AT", theme: "valentia", difficulty: "intermedio" },
+        { ref: "1 Corintios 16:13", text: "Velad, estad firmes en la fe; portaos varonilmente, y esforzaos", book: "NT", theme: "valentia", difficulty: "intermedio" },
+        { ref: "Isaías 35:4", text: "Decid a los de corazón apocado: Esforzaos, no temáis; he aquí que vuestro Dios viene con retribución", book: "AT", theme: "valentia", difficulty: "avanzado" },
+        { ref: "Hageo 2:4", text: "Pues ahora, Zorobabel, esfuérzate, dice Jehová; esfuérzate también, Josué hijo de Josadac, sumo sacerdote", book: "AT", theme: "valentia", difficulty: "avanzado" },
+        { ref: "2 Crónicas 32:7", text: "Esforzaos y animaos; no temáis, ni tengáis miedo del rey de Asiria, ni de toda la multitud que con él viene", book: "AT", theme: "valentia", difficulty: "avanzado" },
+        { ref: "Salmos 56:3-4", text: "En el día que temo, Yo en ti confío. En Dios alabaré su palabra; En Dios he confiado", book: "AT", theme: "valentia", difficulty: "intermedio" },
+
+        // GRACIA
+        { ref: "Tito 2:11", text: "Porque la gracia de Dios se ha manifestado para salvación a todos los hombres", book: "NT", theme: "gracia", difficulty: "intermedio" },
+        { ref: "Efesios 2:8", text: "Porque por gracia sois salvos por medio de la fe; y esto no de vosotros, pues es don de Dios", book: "NT", theme: "gracia", difficulty: "principiante" },
+        { ref: "Romanos 3:24", text: "Siendo justificados gratuitamente por su gracia, mediante la redención que es en Cristo Jesús", book: "NT", theme: "gracia", difficulty: "intermedio" },
+        { ref: "Hebreos 4:16", text: "Acerquémonos, pues, confiadamente al trono de la gracia, para alcanzar misericordia y hallar gracia", book: "NT", theme: "gracia", difficulty: "avanzado" },
+        { ref: "2 Corintios 12:9", text: "Y me ha dicho: Bástate mi gracia; porque mi poder se perfecciona en la debilidad", book: "NT", theme: "gracia", difficulty: "intermedio" },
+        { ref: "Juan 1:16", text: "Porque de su plenitud tomamos todos, y gracia sobre gracia", book: "NT", theme: "gracia", difficulty: "intermedio" },
+        { ref: "Santiago 4:6", text: "Pero él da mayor gracia. Por esto dice: Dios resiste a los soberbios, y da gracia a los humildes", book: "NT", theme: "gracia", difficulty: "intermedio" },
+        { ref: "1 Pedro 5:10", text: "Mas el Dios de toda gracia, que nos llamó a su gloria eterna en Jesucristo, después que hayáis padecido", book: "NT", theme: "gracia", difficulty: "avanzado" },
+        { ref: "Romanos 5:20", text: "Pero la ley se introdujo para que el pecado abundase; mas cuando el pecado abundó, sobreabundó la gracia", book: "NT", theme: "gracia", difficulty: "avanzado" },
+        { ref: "Hechos 20:24", text: "Para dar testimonio del evangelio de la gracia de Dios", book: "NT", theme: "gracia", difficulty: "intermedio" },
+
+        // PRIORIDADES
+        { ref: "Mateo 6:33", text: "Mas buscad primeramente el reino de Dios y su justicia, y todas estas cosas os serán añadidas", book: "NT", theme: "prioridades", difficulty: "intermedio" },
+        { ref: "Colosenses 3:2", text: "Poded la mira en las cosas de arriba, no en las de la tierra", book: "NT", theme: "prioridades", difficulty: "principiante" },
+        { ref: "Mateo 6:21", text: "Porque donde esté vuestro tesoro, allí estará también vuestro corazón", book: "NT", theme: "prioridades", difficulty: "principiante" },
+        { ref: "Salmos 90:12", text: "Enséñanos de tal modo a contar nuestros días, que traigamos al corazón sabiduría", book: "AT", theme: "prioridades", difficulty: "intermedio" },
+        { ref: "Filipenses 3:13-14", text: "Hermanos, yo mismo no pretendo haberlo ya alcanzado; pero una cosa hago: olvidando ciertamente lo que queda atrás", book: "NT", theme: "prioridades", difficulty: "avanzado" },
+        { ref: "Marcos 8:36", text: "Porque ¿qué aprovechará al hombre si ganare todo el mundo, y perdiere su alma?", book: "NT", theme: "prioridades", difficulty: "principiante" },
+        { ref: "Lucas 10:41-42", text: "Marta, Marta, afanada y turbada estás con muchas cosas. Pero sólo una cosa es necesaria", book: "NT", theme: "prioridades", difficulty: "avanzado" },
+        { ref: "Salmos 37:4", text: "Deléitate asimismo en Jehová, Y él te concederá las peticiones de tu corazón", book: "AT", theme: "prioridades", difficulty: "intermedio" },
+        { ref: "Proverbios 23:26", text: "Dame, hijo mío, tu corazón, Y miren tus ojos por mis caminos", book: "AT", theme: "prioridades", difficulty: "principiante" },
+        { ref: "Mateo 6:24", text: "Ninguno puede servir a dos señores; porque o aborrecerá al uno y amará al otro", book: "NT", theme: "prioridades", difficulty: "intermedio" },
     ]
 };
 
