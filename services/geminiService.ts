@@ -730,15 +730,16 @@ export const refineHighlightsWithContext = async (
     ${JSON.stringify(highlights.slice(0, 50))}
 
     TAREA (INTENTO #${variationSeed}):
-    El usuario quiere REFINAR estos términos pero MANTENIENDO la esencia visual original primero.
+    El usuario ya tiene los términos originales. TU TAREA ES GENERAR SOLO LAS VARIACIONES CREATIVAS Y PROFUNDAS.
     
-    ESTRUCTURA DE RESPUESTA OBLIGATORIA PARA CADA TÉRMINO:
-    1. La PRIMERA opción debe ser el término original destacado (o una limpieza mínima si es muy largo).
-    2. Las siguientes opciones deben ser las "CONEXIONES BÍBLICAS VISUALES" creativas solicitadas.
+    ESTRUCTURA DE RESPUESTA:
+    - NO incluyas el término original exacto en la respuesta.
+    - Para cada término destacado, genera una "CONEXIÓN BÍBLICA VISUAL" potente.
+    - SIEMPRE busca ángulos diferentes si el intento cambia.
     
     ${variationInstruction}
     
-    GENERA UNA LISTA PLANA DE FRASES FINAL (Mezclando originales y variaciones):
+    GENERA UNA LISTA PLANA DE FRASES FINAL (SOLO LAS VARIACIONES):
     
     IMPORTANTE: ESTA ES UNA NUEVA SOLICITUD. IGNORA CUALQUIER RESPUESTA ANTERIOR.
     DAME RESULTADOS DIFERENTES AHORA.
