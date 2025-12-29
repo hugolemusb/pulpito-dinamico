@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Printer, Copy, Download, Eye, LayoutGrid, Mic, RefreshCw, FileText, Import, ArrowDownCircle, Undo, Redo } from 'lucide-react';
-import { extractPowerPhrases, PowerPhrasesResult, extractBoldWords, refineHighlightsWithContext } from '../services/geminiService';
+import { extractPowerPhrases, PowerPhrasesResult, extractBoldWords, refineHighlightsWithContext, extractColoredWords } from '../services/geminiService';
 import { Sermon } from '../types';
 
 interface InfografiaSermonProps {
@@ -484,8 +484,8 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         setIsRefining(true);
 
         try {
-            // 1. Extraer palabras en negrita/color/subrayado
-            const highlighted = extractBoldWords(pulpitContent);
+            // 1. Extraer palabras SOLO con color (prioridad absoluta)
+            const highlighted = extractColoredWords(pulpitContent);
 
             if (highlighted.length === 0) {
                 alert('No se encontraron palabras destacadas (negrita, color, etc) en el sermón.');

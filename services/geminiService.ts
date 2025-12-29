@@ -60,26 +60,16 @@ export interface PowerPhrasesResult {
  * Extrae palabras destacadas del HTML del sermón
  * Detecta: bold, strong, mark, colores, backgrounds, tipografías diferentes
  */
-export const extractBoldWords = (html: string): string[] => {
+export const extractColoredWords = (html: string): string[] => {
   const temp = document.createElement('div');
   temp.innerHTML = html;
-
-  const boldWords: string[] = [];
-
-  // Helper to clean and add word
+  const coloredWords: string[] = [];
   const addWord = (text?: string | null) => {
     if (!text) return;
     const cleaned = text.trim();
-    if (cleaned.length > 2 && !boldWords.includes(cleaned)) {
-      boldWords.push(cleaned);
-    }
+    if (cleaned.length > 2 && !coloredWords.includes(cleaned)) coloredWords.push(cleaned);
   };
 
-  // 1. Tags semánticos directos (negrita, subrayado, itálica, resaltado)
-  const semanticTags = temp.querySelectorAll('strong, b, mark, em, i, u, ins');
-  semanticTags.forEach(el => addWord(el.textContent));
-
-  // 2. Análisis profundo de TODOS los elementos para estilos inline
   const allElements = temp.querySelectorAll('*');
   allElements.forEach(el => {
     const element = el as HTMLElement;
@@ -87,55 +77,49 @@ export const extractBoldWords = (html: string): string[] => {
     const computedStyle = element.getAttribute('style') || '';
 
     // A. Colores de texto (color: ...)
-    // Detectamos si tiene CUALQUIER color definido inline
-    if (style.color || computedStyle.includes('color:')) {
-      // Ignoramos negros/grises por defecto si se usan, pero generalmente los editores no ponen color: black explícito salvo copy-paste
-      // Asumimos que si hay un color explícito, es intencional.
+    if (style.color || computedStyle.includes('color:')) addWord(element.textContent);
+
+    // B. Colores de fondo (background-color: ...)
+    if ((style.backgroundColor || computedStyle.includes('background')) &&
+      style.backgroundColor !== 'transparent' && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== '#ffffff') {
       addWord(element.textContent);
     }
 
-    // B. Colores de fondo (background-color: ...) - "Destacador"
-    if (style.backgroundColor || computedStyle.includes('background') || computedStyle.includes('background-color')) {
-      // Ignorar blanco o transparente si llegara a aparecer
-      if (style.backgroundColor !== 'transparent' && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== '#ffffff') {
-        addWord(element.textContent);
-      }
-    }
-
-    // C. Negritas por estilo (font-weight)
-    if (style.fontWeight === 'bold' || parseInt(style.fontWeight) >= 600 || computedStyle.includes('font-weight: bold')) {
+    // C. Clases de editor con color
+    if (element.className && (element.className.includes('color') || element.className.includes('bg-'))) {
       addWord(element.textContent);
-    }
-
-    // D. Decoración de texto (text-decoration: underline)
-    if (style.textDecoration.includes('underline') || computedStyle.includes('text-decoration: underline')) {
-      addWord(element.textContent);
-    }
-
-    // F. Subrayados simulados con border-bottom
-    if ((style.borderBottom && style.borderBottom !== 'none') || computedStyle.includes('border-bottom')) {
-      addWord(element.textContent);
-    }
-
-    // E. Tamaños de fuente grandes (headers o custom font-size)
-    if (element.tagName.match(/^H[1-6]$/) || style.fontSize) {
-      if (element.tagName.match(/^H[1-6]$/)) {
-        // Headers son destacados naturales
-        addWord(element.textContent);
-      } else if (style.fontSize && (style.fontSize.includes('pt') || style.fontSize.includes('px'))) {
-        // Si es más grande que el texto normal (asumiendo base 16px o 12pt)
-        const size = parseFloat(style.fontSize);
-        if ((style.fontSize.includes('px') && size > 18) || (style.fontSize.includes('pt') && size > 14)) {
-          addWord(element.textContent);
-        }
-      }
     }
   });
 
-  // 3. Clases específicas de editores (Quill, Tiptap, etc)
-  // ql-color-*, ql-bg-*, has-text-color, has-background
-  const editorClasses = temp.querySelectorAll('[class*="color"], [class*="bg-"], [class*="highlight"]');
-  editorClasses.forEach(el => addWord(el.textContent));
+  return [...new Set(coloredWords)];
+};
+
+export const extractBoldWords = (html: string): string[] => {
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  const boldWords: string[] = [];
+  const addWord = (text?: string | null) => {
+    if (!text) return;
+    const cleaned = text.trim();
+    if (cleaned.length > 2 && !boldWords.includes(cleaned)) boldWords.push(cleaned);
+  };
+
+  // 1. Tags semánticos directos (negrita, subrayado, itálica, resaltado)
+  const semanticTags = temp.querySelectorAll('strong, b, mark, em, i, u, ins');
+  semanticTags.forEach(el => addWord(el.textContent));
+
+  // 2. Estilos inline NO relacionados con color (Font-Weight, Underline, Fonts)
+  const allElements = temp.querySelectorAll('*');
+  allElements.forEach(el => {
+    const element = el as HTMLElement;
+    const style = element.style;
+    const computedStyle = element.getAttribute('style') || '';
+
+    if (style.fontWeight === 'bold' || parseInt(style.fontWeight) >= 600 || computedStyle.includes('font-weight: bold')) addWord(element.textContent);
+    if (style.textDecoration.includes('underline') || computedStyle.includes('text-decoration: underline')) addWord(element.textContent);
+    if ((style.borderBottom && style.borderBottom !== 'none') || computedStyle.includes('border-bottom')) addWord(element.textContent);
+    if (element.tagName.match(/^H[1-6]$/)) addWord(element.textContent);
+  });
 
   return [...new Set(boldWords)];
 };
