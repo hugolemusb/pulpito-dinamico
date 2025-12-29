@@ -1068,6 +1068,26 @@ return (
                                 <p className="text-xl font-black mt-2">{idea}</p>
                             </div>
 
+                            {/* Versículos al pie (NUEVO para Dashboard) */}
+                            {extractedInfo.keyVerses.length > 0 && (
+                                <div className="mb-6 p-4 bg-blue-100 rounded-xl text-center">
+                                    <h4 className="font-bold text-blue-800 mb-2 flex items-center justify-center gap-2">
+                                        <BookOpen className="w-4 h-4" /> VERSÍCULOS CLAVE
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2 justify-center">
+                                        {extractedInfo.keyVerses.map((verse, i) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => handleVerseClick(verse)}
+                                                className="text-lg font-semibold text-blue-700 hover:text-white hover:bg-blue-600 px-3 py-1 rounded transition-colors underline decoration-blue-400/50"
+                                            >
+                                                {verse}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Palabras de Acción */}
                             {extractedInfo.actionWords.length > 0 && (
                                 <div className="text-center">
@@ -1163,107 +1183,93 @@ return (
                         </div>
                     )}
 
-                    {/* Púlpito Original View - Shows exact section order */}
-                    {
-                        activeView === 'pulpito' && pulpitoSections.length > 0 && (
-                            <div className="bg-white rounded-xl shadow-lg p-6">
-                                {/* Header with sermon info */}
-                                <div className="text-center mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl">
-                                    <h2 className="text-2xl font-bold mb-2">{sermonTitle}</h2>
-                                    <div className="flex flex-wrap justify-center gap-4 text-sm opacity-90">
-                                        {speaker && <span>👤 {speaker}</span>}
-                                        {sermonDate && <span>📅 {sermonDate}</span>}
-                                        {mainVerse && <span>📖 {mainVerse}</span>}
-                                    </div>
-                                    {mainVerseText && (
-                                        <p className="mt-3 italic text-blue-100">"{mainVerseText}"</p>
-                                    )}
-                                </div>
 
-                                {/* Sections in exact order */}
-                                <div className="space-y-4">
-                                    {pulpitoSections.map((section, index) => (
-                                        <div
-                                            key={section.id}
-                                            className="p-5 rounded-xl border-l-4 transition-all hover:shadow-md"
-                                            style={{
-                                                borderColor: ['#3498db', '#27ae60', '#e67e22', '#8e44ad', '#1abc9c', '#e74c3c'][index % 6],
-                                                background: `linear-gradient(135deg, ${['#ebf5fb', '#eafaf1', '#fef5e7', '#f4ecf7', '#e8f8f5', '#fadbd8'][index % 6]} 0%, white 100%)`
-                                            }}
-                                        >
-                                            <div className="flex items-center justify-between mb-3">
-                                                <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                                                    <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-sm flex items-center justify-center font-bold">
-                                                        {index + 1}
-                                                    </span>
-                                                    {section.title}
-                                                </h3>
-                                                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                                                    ⏱️ {section.durationMin} min
-                                                </span>
-                                            </div>
-                                            <div
-                                                className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                                                dangerouslySetInnerHTML={{ __html: section.content }}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
+                    {/* SECCIÓN PÚLPITO ORIGINAL - SIEMPRE VISIBLE AL FINAL */}
+                    {pulpitoSections.length > 0 && (
+                        <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
+                            <h3 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">📜 Estructura del Mensaje</h3>
 
-                                {/* Total duration */}
-                                <div className="mt-6 p-3 bg-gray-100 rounded-lg text-center">
-                                    <span className="font-semibold text-gray-700">
-                                        ⏱️ Duración Total: {pulpitoSections.reduce((acc, s) => acc + (s.durationMin || 0), 0)} minutos
-                                    </span>
+                            {/* Header with sermon info */}
+                            <div className="text-center mb-6 p-4 bg-gray-50 rounded-xl">
+                                <h2 className="text-xl font-bold mb-2 text-gray-800">{sermonTitle}</h2>
+                                <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+                                    {speaker && <span>👤 {speaker}</span>}
+                                    {sermonDate && <span>📅 {sermonDate}</span>}
+                                    {mainVerse && <span>📖 {mainVerse}</span>}
                                 </div>
                             </div>
-                        )
-                    }
 
-                    {/* Export Section */}
-                    <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t-2 border-gray-300 no-print">
-                        <button onClick={printInfographia} className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all">
-                            <Printer className="w-4 h-4" /> Imprimir
+                            {/* Sections in exact order */}
+                            <div className="space-y-4">
+                                {pulpitoSections.map((section, index) => (
+                                    <div
+                                        key={section.id}
+                                        className="p-4 rounded-lg bg-gray-50 border border-gray-200 hover:bg-white hover:shadow-md transition-all"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-bold text-gray-700 flex items-center gap-2">
+                                                <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
+                                                    {index + 1}
+                                                </span>
+                                                {section.title}
+                                            </h4>
+                                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                                {section.durationMin} min
+                                            </span>
+                                        </div>
+                                        <div
+                                            className="text-gray-600 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none transition-all"
+                                            dangerouslySetInnerHTML={{ __html: section.content }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Export Section - ALWAYS VISIBLE FIXED BOTTOM OR AFTER CONTENT */}
+                    <div className="flex flex-wrap justify-center gap-4 mt-8 pt-6 pb-20 border-t border-gray-300">
+                        <button onClick={printInfographia} className="px-6 py-2 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-all shadow-md">
+                            IMPRIMIR INFOGRAFÍA
                         </button>
-                        <button onClick={downloadWord} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
-                            <FileIcon className="w-4 h-4" /> Exportar a Word
+                        <button onClick={downloadWord} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md">
+                            EXPORTAR WORD
                         </button>
-                        <button onClick={copyToClipboard} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all">
-                            <Copy className="w-4 h-4" /> Copiar Texto
+                        <button onClick={copyToClipboard} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-all shadow-sm">
+                            COPIAR TEXTO
                         </button>
-                        <button onClick={downloadJSON} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all">
-                            <Download className="w-4 h-4" /> JSON
+                        <button onClick={downloadJSON} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-all shadow-sm">
+                            DESCARGAR JSON
                         </button>
                     </div>
                 </>
             )}
-
-            {/* VERSE MODAL */}
+            {/* VERSE MODAL - HIGH Z-INDEX */}
             {selectedVerse && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedVerse(null)}>
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
-                        <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedVerse(null)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 ring-4 ring-blue-500/30" onClick={e => e.stopPropagation()}>
+                        <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white shadow-md">
                             <h3 className="text-xl font-bold flex items-center gap-2">
-                                <BookOpen className="w-5 h-5" />
+                                <BookOpen className="w-6 h-6" />
                                 {selectedVerse.ref}
                             </h3>
-                            <button onClick={() => setSelectedVerse(null)} className="hover:bg-blue-700 p-1 rounded-full transition-colors">
+                            <button onClick={() => setSelectedVerse(null)} className="hover:bg-blue-700 p-2 rounded-full transition-colors">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <div className="p-8">
+                        <div className="p-8 bg-gradient-to-br from-white to-blue-50 min-h-[200px] flex flex-col justify-center">
                             {isLoadingVerse && selectedVerse.text === 'Cargando...' ? (
-                                <div className="flex flex-col items-center justify-center py-8 text-blue-500">
-                                    <Loader2 className="w-10 h-10 animate-spin mb-3" />
-                                    <p>Buscando en las Escrituras...</p>
+                                <div className="flex flex-col items-center justify-center py-4 text-blue-500">
+                                    <Loader2 className="w-12 h-12 animate-spin mb-4" />
+                                    <p className="font-medium animate-pulse">Buscando en las Escrituras...</p>
                                 </div>
                             ) : (
                                 <>
-                                    <p className="text-xl leading-relaxed font-serif text-gray-800 italic text-justify">
+                                    <p className="text-2xl leading-relaxed font-serif text-gray-800 italic text-center drop-shadow-sm">
                                         "{selectedVerse.text}"
                                     </p>
-                                    <div className="mt-6 pt-4 border-t border-gray-100 text-right">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Reina Valera 1960</span>
+                                    <div className="mt-8 pt-4 border-t border-blue-100 text-center">
+                                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest border border-blue-200 px-3 py-1 rounded-full">Reina Valera 1960</span>
                                     </div>
                                 </>
                             )}
@@ -1274,374 +1280,4 @@ return (
         </div>
     </div>
 );
-}; {/* Cabecera con idea central */ }
-<div className="text-center mb-8">
-    <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl px-8 py-4 shadow-xl">
-        <span className="text-4xl">💡</span>
-        <p className="text-xl font-black text-white mt-2">{idea}</p>
-    </div>
-    {mainVerse && (
-        <p className="mt-3 text-lg font-semibold text-blue-700">📖 {mainVerse}</p>
-    )}
-</div>
-
-{/* Flujo de tarjetas conectadas */ }
-<div className="flex flex-wrap justify-center gap-4 mb-8">
-    {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map((key, index) => {
-        const config = sectionConfig[key];
-        const content = sections[key];
-        if (!content) return null;
-
-        const phrases = extractKeyPhrases(content, 2);
-        const reflection = generateReflection(key, content);
-
-        return (
-            <div key={key} className="flex items-center">
-                {/* Tarjeta Expandida */}
-                <div
-                    className="w-96 p-6 rounded-xl shadow-lg text-center transform hover:scale-105 transition-transform"
-                    style={{ background: config.bg, border: `3px solid ${config.color}` }}
-                >
-                    <span className="text-4xl">{config.icon}</span>
-                    <h3 className="text-lg font-black mt-2" style={{ color: config.color }}>
-                        {config.title}
-                    </h3>
-                    <p className="text-sm font-bold text-gray-600 mt-2">{reflection}</p>
-                    {/* Mostrar más contenido (resumen) en lugar de una sola frase */}
-                    <div className="mt-4 text-sm text-gray-700 leading-relaxed font-medium">
-                        "{smartTruncate(content, 180)}"
-                    </div>
-                </div>
-                {/* Flecha conectora */}
-                {index < 3 && <span className="text-3xl text-gray-400 mx-2">→</span>}
-            </div>
-        );
-    })}
-</div>
-
-{/* Palabras de Acción - Badges coloridos */ }
-{
-    extractedInfo.actionWords.length > 0 && (
-        <div className="text-center mb-6">
-            <h4 className="font-bold text-purple-800 mb-3">🎯 ACCIONES CLAVE</h4>
-            <div className="flex flex-wrap justify-center gap-2">
-                {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-xl px-4 py-2"))}
-            </div>
-        </div>
-    )
-}
-
-{
-    extractedInfo.keyVerses.length > 0 && (
-        <div className="text-center p-4 bg-blue-100 rounded-xl">
-            <span className="text-blue-800 font-semibold">📖 </span>
-            {extractedInfo.keyVerses.map((v, i) => (
-                <button
-                    key={i}
-                    onClick={() => handleVerseClick(v)}
-                    className="text-blue-700 font-medium mx-2 hover:bg-blue-200 px-2 py-1 rounded transition-colors underline decoration-blue-300"
-                >
-                    {v}
-                </button>
-            ))}
-        </div>
-    )
-}
-                        </div >
-                    )}
-
-{/* DASHBOARD - Vista rápida con MÉTRICAS y FRASES */ }
-{
-    activeView === 'dashboard' && (
-        <div id="infografia-content" className="bg-gradient-to-br from-slate-100 to-gray-200 rounded-xl shadow-lg p-6">
-            {/* Cabecera con título */}
-            <div className="text-center mb-6">
-                <h2 className="text-2xl font-black text-gray-800">📊 {sermonTitle || 'Resumen Rápido'}</h2>
-                <p className="text-blue-600 font-semibold">{mainVerse}</p>
-            </div>
-
-            {/* Grid de métricas visuales */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                {/* Métrica: Secciones */}
-                <div className="bg-blue-500 text-white rounded-xl p-4 text-center shadow-lg">
-                    <span className="text-3xl">📖</span>
-                    <p className="text-3xl font-black mt-2">{Object.values(sections).filter(s => s).length}</p>
-                    <p className="text-sm font-semibold">SECCIONES</p>
-                </div>
-                {/* Métrica: Versículos */}
-                <div className="bg-green-500 text-white rounded-xl p-4 text-center shadow-lg">
-                    <span className="text-3xl">📜</span>
-                    <p className="text-3xl font-black mt-2">{extractedInfo.keyVerses.length || 1}</p>
-                    <p className="text-sm font-semibold">VERSÍCULOS</p>
-                </div>
-                {/* Métrica: Palabras Clave */}
-                <div className="bg-purple-500 text-white rounded-xl p-4 text-center shadow-lg">
-                    <span className="text-3xl">🎯</span>
-                    <p className="text-3xl font-black mt-2">{extractedInfo.actionWords.length}</p>
-                    <p className="text-sm font-semibold">ACCIONES</p>
-                </div>
-                {/* Métrica: Frases */}
-                <div className="bg-orange-500 text-white rounded-xl p-4 text-center shadow-lg">
-                    <span className="text-3xl">💬</span>
-                    <p className="text-3xl font-black mt-2">{extractedInfo.impactPhrases.length || 3}</p>
-                    <p className="text-sm font-semibold">IDEAS CLAVE</p>
-                </div>
-            </div>
-
-            {/* Resumen por sección - solo frases */}
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-                {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
-                    const config = sectionConfig[key];
-                    const content = sections[key];
-                    if (!content) return null;
-
-                    const phrases = extractKeyPhrases(content, 2);
-
-                    return (
-                        <div
-                            key={key}
-                            className="bg-white rounded-xl p-4 shadow-md"
-                            style={{ borderTop: `4px solid ${config.color}` }}
-                        >
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-2xl">{config.icon}</span>
-                                <h4 className="font-black" style={{ color: config.color }}>
-                                    {config.title}
-                                </h4>
-                            </div>
-                            {phrases.length > 0 ? (
-                                <ul className="text-sm text-gray-700 space-y-1">
-                                    {phrases.map((p, i) => (
-                                        <li key={i} className="flex items-start gap-2">
-                                            <span style={{ color: config.color }}>▸</span>
-                                            <span className="italic">"{p}"</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-gray-500 italic">{generateReflection(key, content)}</p>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Idea Central destacada */}
-            <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-6 text-center text-white shadow-xl mb-6">
-                <span className="text-4xl">💡</span>
-                <p className="text-xl font-black mt-2">{idea}</p>
-            </div>
-
-            {/* Palabras de Acción */}
-            {extractedInfo.actionWords.length > 0 && (
-                <div className="text-center">
-                    <h4 className="font-bold text-gray-700 mb-3">🔥 ACCIONES</h4>
-                    <div className="flex flex-wrap justify-center gap-2">
-                        {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-sm px-3 py-1"))}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
-
-{/* Predicador View - ALTAMENTE VISUAL para lectura rápida */ }
-{
-    activeView === 'predicador' && (
-        <div id="infografia-content" className="bg-gray-900 text-white rounded-xl shadow-lg p-8 min-h-[600px]">
-            {/* Título y Versículo - CONTENEDOR UNIFICADO */}
-            <div className="text-center mb-10 p-6 bg-blue-800 rounded-2xl shadow-xl border-4 border-blue-600">
-                <h2 className="text-4xl font-black text-white mb-4 tracking-wide uppercase leading-tight">{sermonTitle || 'MENSAJE'}</h2>
-
-                {mainVerse && (
-                    <div className="mt-4 pt-4 border-t border-blue-500">
-                        <p className="text-2xl font-bold text-yellow-400 mb-2">📖 {mainVerse}</p>
-                        {mainVerseText && (
-                            <p className="text-lg text-blue-100 italic font-serif">"{mainVerseText}"</p>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* PALABRAS CLAVE - SÚPER DESTACADAS */}
-            {extractedInfo.actionWords.length > 0 && (
-                <div className="mb-8 text-center">
-                    <h3 className="text-2xl font-bold text-yellow-400 mb-4">🎯 PALABRAS CLAVE</h3>
-                    <div className="flex flex-wrap justify-center gap-4">
-                        {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i))}
-                    </div>
-                </div>
-            )}
-
-            {/* SECCIONES - Solo puntos clave con íconos grandes */}
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-                {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
-                    const config = sectionConfig[key];
-                    const content = sections[key];
-                    if (!content) return null;
-
-                    // Extraer solo las primeras 2 oraciones
-                    const shortContent = smartTruncate(content, 200);
-
-                    return (
-                        <div
-                            key={key}
-                            className="p-6 rounded-2xl"
-                            style={{ background: config.bg, border: `3px solid ${config.color}` }}
-                        >
-                            <div className="flex items-center gap-4 mb-4">
-                                <span className="text-5xl">{config.icon}</span>
-                                <h3 className="text-2xl font-black" style={{ color: config.color }}>
-                                    {config.title.toUpperCase()}
-                                </h3>
-                            </div>
-                            <p className="text-lg text-gray-800 leading-relaxed font-medium">
-                                {shortContent}
-                            </p>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* CONCLUSIÓN - Destacada */}
-            <div className="p-8 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl text-center shadow-2xl">
-                <span className="text-5xl">🙏</span>
-                <h3 className="text-3xl font-black mt-4 mb-4">CONCLUSIÓN</h3>
-                <p className="text-2xl font-medium leading-relaxed">{smartTruncate(sections.conclusion || idea, 250)}</p>
-            </div>
-
-            {/* Versículos al pie - referencia rápida */}
-            {extractedInfo.keyVerses.length > 0 && (
-                <div className="mt-6 p-4 bg-blue-900/70 rounded-xl text-center">
-                    <div className="flex flex-wrap gap-2 justify-center">
-                        {extractedInfo.keyVerses.map((verse, i) => (
-                            <button
-                                key={i}
-                                onClick={() => handleVerseClick(verse)}
-                                className="text-lg text-blue-300 hover:text-white hover:bg-blue-800 px-3 py-1 rounded transition-colors underline decoration-blue-500/50"
-                            >
-                                📖 {verse}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    )
-}
-
-{/* Púlpito Original View - Shows exact section order */ }
-{
-    activeView === 'pulpito' && pulpitoSections.length > 0 && (
-        <div className="bg-white rounded-xl shadow-lg p-6">
-            {/* Header with sermon info */}
-            <div className="text-center mb-6 p-4 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl">
-                <h2 className="text-2xl font-bold mb-2">{sermonTitle}</h2>
-                <div className="flex flex-wrap justify-center gap-4 text-sm opacity-90">
-                    {speaker && <span>👤 {speaker}</span>}
-                    {sermonDate && <span>📅 {sermonDate}</span>}
-                    {mainVerse && <span>📖 {mainVerse}</span>}
-                </div>
-                {mainVerseText && (
-                    <p className="mt-3 italic text-blue-100">"{mainVerseText}"</p>
-                )}
-            </div>
-
-            {/* Sections in exact order */}
-            <div className="space-y-4">
-                {pulpitoSections.map((section, index) => (
-                    <div
-                        key={section.id}
-                        className="p-5 rounded-xl border-l-4 transition-all hover:shadow-md"
-                        style={{
-                            borderColor: ['#3498db', '#27ae60', '#e67e22', '#8e44ad', '#1abc9c', '#e74c3c'][index % 6],
-                            background: `linear-gradient(135deg, ${['#ebf5fb', '#eafaf1', '#fef5e7', '#f4ecf7', '#e8f8f5', '#fadbd8'][index % 6]} 0%, white 100%)`
-                        }}
-                    >
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                                <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-sm flex items-center justify-center font-bold">
-                                    {index + 1}
-                                </span>
-                                {section.title}
-                            </h3>
-                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                                ⏱️ {section.durationMin} min
-                            </span>
-                        </div>
-                        <div
-                            className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: section.content }}
-                        />
-                    </div>
-                ))}
-            </div>
-
-            {/* Total duration */}
-            <div className="mt-6 p-3 bg-gray-100 rounded-lg text-center">
-                <span className="font-semibold text-gray-700">
-                    ⏱️ Duración Total: {pulpitoSections.reduce((acc, s) => acc + (s.durationMin || 0), 0)} minutos
-                </span>
-            </div>
-        </div>
-    )
-}
-
-{/* Export Section */ }
-<div className="flex flex-wrap gap-3 mt-6 pt-6 border-t-2 border-gray-300 no-print">
-    <button onClick={printInfographia} className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-all">
-        <Printer className="w-4 h-4" /> Imprimir
-    </button>
-    <button onClick={downloadWord} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
-        <FileIcon className="w-4 h-4" /> Exportar a Word
-    </button>
-    <button onClick={copyToClipboard} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all">
-        <Copy className="w-4 h-4" /> Copiar Texto
-    </button>
-    <button onClick={downloadJSON} className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all">
-        <Download className="w-4 h-4" /> JSON
-    </button>
-</div>
-                </>
-            )}
-
-{/* VERSE MODAL */ }
-{
-    selectedVerse && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedVerse(null)}>
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100" onClick={e => e.stopPropagation()}>
-                <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white">
-                    <h3 className="text-xl font-bold flex items-center gap-2">
-                        <BookOpen className="w-5 h-5" />
-                        {selectedVerse.ref}
-                    </h3>
-                    <button onClick={() => setSelectedVerse(null)} className="hover:bg-blue-700 p-1 rounded-full transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-                <div className="p-8">
-                    {isLoadingVerse && selectedVerse.text === 'Cargando...' ? (
-                        <div className="flex flex-col items-center justify-center py-8 text-blue-500">
-                            <Loader2 className="w-10 h-10 animate-spin mb-3" />
-                            <p>Buscando en las Escrituras...</p>
-                        </div>
-                    ) : (
-                        <>
-                            <p className="text-xl leading-relaxed font-serif text-gray-800 italic text-justify">
-                                "{selectedVerse.text}"
-                            </p>
-                            <div className="mt-6 pt-4 border-t border-gray-100 text-right">
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Reina Valera 1960</span>
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
-        </div>
-    )
-}
-        </>
-    </div >
-);
 };
-```
