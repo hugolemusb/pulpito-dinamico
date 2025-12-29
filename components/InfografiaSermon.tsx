@@ -628,7 +628,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         style.innerHTML = `
             @media print {
                 @page {
-                    margin: 2cm;
+                    margin: 1cm;
                     size: auto;
                 }
                 html, body {
@@ -643,24 +643,33 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                 }
                 #printable-area {
                     visibility: visible;
-                    position: absolute;
+                    position: relative;
                     left: 0;
                     top: 0;
                     width: 100%;
                     height: auto !important;
                     overflow: visible !important;
                     display: block;
-                    background: white;
+                    background: transparent; /* Allow content backgrounds to show */
                     z-index: 9999;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
                 }
                 #printable-area * {
                     visibility: visible;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
                 }
                 .no-print {
                     display: none !important;
                 }
                 .break-inside-avoid {
                     page-break-inside: avoid;
+                }
+                /* Explicitly force gradients and shadows if stripped */
+                .bg-gradient-to-br, .bg-gradient-to-r, .shadow-lg, .shadow-xl {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                 }
             }
         `;
@@ -707,7 +716,48 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         const uiElements = clone.querySelectorAll('button, .no-print');
         uiElements.forEach(el => el.remove());
 
-        const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>" + sermonTitle + "</title><style>body { font-family: 'Calibri', sans-serif; }</style></head><body>";
+        // CSS for Word fidelity (Word doesn't support Tailwind)
+        const styles = `
+            <style>
+                body { font-family: 'Calibri', 'Arial', sans-serif; background-color: #ffffff; }
+                .bg-gradient-to-br { background: #f0f9ff; } /* Fallback for gradients */
+                .from-slate-50 { background-color: #f8fafc; }
+                .to-blue-50 { background-color: #eff6ff; }
+                /* Gradients for cards */
+                .bg-gradient-to-r { background: #e0f2fe; }
+                
+                .shadow-lg, .shadow-xl { border: 1px solid #ddd; } /* Word doesn't do shadows well, use border */
+                .rounded-xl, .rounded-2xl { border-radius: 15px; }
+                
+                .text-center { text-align: center; }
+                .font-bold, .font-black { font-weight: bold; }
+                .text-white { color: white !important; }
+                .text-blue-600 { color: #2563eb; }
+                .text-teal-600 { color: #0d9488; }
+                .text-gray-800 { color: #1f2937; }
+                
+                /* Layout */
+                .flex { display: block; } /* Word struggles with flex, fallback to block */
+                .justify-center { text-align: center; margin: 0 auto; }
+                .gap-4 { margin-bottom: 15px; }
+                
+                /* Specific Components */
+                h2 { font-size: 24px; color: #1e3a8a; }
+                h3 { font-size: 18px; color: #1e40af; margin-top: 20px; }
+                p { font-size: 14px; line-height: 1.5; margin-bottom: 10px; }
+                
+                /* Tables for layout if needed, but block stack is safer for Word 2007 engine */
+                .p-6, .p-8 { padding: 20px; }
+                .mb-6 { margin-bottom: 24px; }
+                .mt-8 { margin-top: 32px; }
+                
+                /* Borders */
+                .border-t-4 { border-top: 4px solid #2563eb; }
+                .border { border: 1px solid #e5e7eb; }
+            </style>
+        `;
+
+        const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>" + sermonTitle + "</title>" + styles + "</head><body>";
         const postHtml = "</body></html>";
         const html = preHtml + clone.innerHTML + postHtml;
 
@@ -1272,9 +1322,6 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
 
                         {/* Export Section - ALWAYS VISIBLE FIXED BOTTOM OR AFTER CONTENT */}
                         <div className="flex flex-wrap justify-center gap-4 mt-8 pt-6 pb-20 border-t border-gray-300">
-                            <button onClick={printInfographia} className="px-6 py-2 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-all shadow-md">
-                                IMPRIMIR INFOGRAFÍA
-                            </button>
                             <button onClick={downloadWord} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md">
                                 EXPORTAR WORD
                             </button>
