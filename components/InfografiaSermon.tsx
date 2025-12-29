@@ -58,7 +58,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
 
     const [historyIndex, setHistoryIndex] = useState(-1);
     const [actionWordsHistory, setActionWordsHistory] = useState<string[][]>([]);
-    const [refreshIndex, setRefreshIndex] = useState(0);
+    const [refreshIndex, setRefreshIndex] = useState(Date.now());
 
     // Cargar desde localStorage si no hay props
     React.useEffect(() => {
