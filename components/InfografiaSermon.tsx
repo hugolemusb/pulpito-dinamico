@@ -624,7 +624,49 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
     };
 
     const printInfographia = () => {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @media print {
+                @page {
+                    margin: 2cm;
+                    size: auto;
+                }
+                html, body {
+                    height: auto !important;
+                    overflow: visible !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                body {
+                    visibility: hidden;
+                    background: white;
+                }
+                #printable-area {
+                    visibility: visible;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: auto !important;
+                    overflow: visible !important;
+                    display: block;
+                    background: white;
+                    z-index: 9999;
+                }
+                #printable-area * {
+                    visibility: visible;
+                }
+                .no-print {
+                    display: none !important;
+                }
+                .break-inside-avoid {
+                    page-break-inside: avoid;
+                }
+            }
+        `;
+        document.head.appendChild(style);
         window.print();
+        document.head.removeChild(style);
     };
 
     const copyToClipboard = () => {
@@ -640,644 +682,645 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
         navigator.clipboard.writeText(text).then(() => {
             alert('✓ Infografía copiada al portapapeles');
         });
-    });
-};
-
-const handleVerseClick = async (ref: string) => {
-    setIsLoadingVerse(true);
-    setSelectedVerse({ ref, text: 'Cargando...' });
-    try {
-        const text = await fetchVerseText(ref, 'RVR1960');
-        setSelectedVerse({ ref, text });
-    } catch (error) {
-        console.error(error);
-        setSelectedVerse({ ref, text: 'No se pudo cargar el versículo. Verifica tu conexión.' });
-    } finally {
-        setIsLoadingVerse(false);
-    }
-};
-
-const downloadWord = () => {
-    const content = document.getElementById('infografia-content');
-    if (!content) return;
-
-    // Clone rendering to remove buttons/UI
-    const clone = content.cloneNode(true) as HTMLElement;
-    const uiElements = clone.querySelectorAll('button, .no-print');
-    uiElements.forEach(el => el.remove());
-
-    const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>" + sermonTitle + "</title><style>body { font-family: 'Calibri', sans-serif; }</style></head><body>";
-    const postHtml = "</body></html>";
-    const html = preHtml + clone.innerHTML + postHtml;
-
-    const blob = new Blob(['\ufeff', html], {
-        type: 'application/msword'
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Infografia_${sermonTitle.replace(/\s+/g, '_') || 'sermon'}.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
-const downloadJSON = () => {
-    const data = {
-        titulo: sermonTitle,
-        ideaCentral: mainIdea,
-        secciones: sections,
-        informacion: extractedInfo,
-        fecha: new Date().toLocaleString('es-CL')
     };
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `infografia_${sermonTitle.replace(/\s+/g, '_') || 'sermon'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-};
-
-const handleToggleActionWord = (word: string) => {
-    setReadActionWords(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(word)) {
-            newSet.delete(word);
-        } else {
-            newSet.add(word);
+    const handleVerseClick = async (ref: string) => {
+        setIsLoadingVerse(true);
+        setSelectedVerse({ ref, text: 'Cargando...' });
+        try {
+            const text = await fetchVerseText(ref, 'RVR1960');
+            setSelectedVerse({ ref, text });
+        } catch (error) {
+            console.error(error);
+            setSelectedVerse({ ref, text: 'No se pudo cargar el versículo. Verifica tu conexión.' });
+        } finally {
+            setIsLoadingVerse(false);
         }
-        return newSet;
-    });
-};
+    };
 
-const renderActionWord = (word: string, index: number, extraClasses: string = "") => {
-    const isRead = readActionWords.has(word);
+    const downloadWord = () => {
+        const content = document.getElementById('printable-area');
+        if (!content) return;
 
-    // Color suave para lectura cómoda (Papel grisáceo con tinta oscura)
-    const unreadBg = '#e2e8f0'; // Slate 200
-    const unreadText = '#0f172a'; // Slate 900
+        // Clone rendering to remove buttons/UI
+        const clone = content.cloneNode(true) as HTMLElement;
+        const uiElements = clone.querySelectorAll('button, .no-print');
+        uiElements.forEach(el => el.remove());
 
-    // Formato Sentence Case (Primera mayúscula, resto minúscula)
-    const formattedWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>" + sermonTitle + "</title><style>body { font-family: 'Calibri', sans-serif; }</style></head><body>";
+        const postHtml = "</body></html>";
+        const html = preHtml + clone.innerHTML + postHtml;
+
+        const blob = new Blob(['\ufeff', html], {
+            type: 'application/msword'
+        });
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Infografia_${sermonTitle.replace(/\s+/g, '_') || 'sermon'}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const downloadJSON = () => {
+        const data = {
+            titulo: sermonTitle,
+            ideaCentral: mainIdea,
+            secciones: sections,
+            informacion: extractedInfo,
+            fecha: new Date().toLocaleString('es-CL')
+        };
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `infografia_${sermonTitle.replace(/\s+/g, '_') || 'sermon'}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handleToggleActionWord = (word: string) => {
+        setReadActionWords(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(word)) {
+                newSet.delete(word);
+            } else {
+                newSet.add(word);
+            }
+            return newSet;
+        });
+    };
+
+    const renderActionWord = (word: string, index: number, extraClasses: string = "") => {
+        const isRead = readActionWords.has(word);
+
+        // Color suave para lectura cómoda (Papel grisáceo con tinta oscura)
+        const unreadBg = '#e2e8f0'; // Slate 200
+        const unreadText = '#0f172a'; // Slate 900
+
+        // Formato Sentence Case (Primera mayúscula, resto minúscula)
+        const formattedWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+        return (
+            <span
+                key={index}
+                onClick={() => handleToggleActionWord(word)}
+                className={`px-6 py-3 rounded-2xl text-2xl font-black shadow-md transform transition-transform cursor-pointer select-none border-2
+                ${isRead
+                        ? 'bg-transparent text-gray-300 border-gray-200 shadow-none scale-95'
+                        : 'hover:scale-105 hover:bg-slate-300 border-transparent'} 
+                ${extraClasses}`}
+                style={isRead ? {} : { backgroundColor: unreadBg, color: unreadText }}
+            >
+                {formattedWord}
+            </span>
+        );
+    };
+
+    const idea = mainIdea || sermonTitle || 'Transformando vidas a través de la Palabra';
+
+    const sectionConfig = {
+        lectura: { icon: '📖', title: 'LECTURA BÍBLICA', color: '#3498db', bg: 'linear-gradient(135deg, #ebf5fb 0%, #d6eaf8 100%)' },
+        desarrollo: { icon: '📚', title: 'DESARROLLO', color: '#27ae60', bg: 'linear-gradient(135deg, #eafaf1 0%, #d5f4e6 100%)' },
+        llamado: { icon: '🎯', title: 'LLAMADO', color: '#e67e22', bg: 'linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%)' },
+        conclusion: { icon: '✨', title: 'CONCLUSIÓN', color: '#8e44ad', bg: 'linear-gradient(135deg, #f4ecf7 0%, #ebdef0 100%)' }
+    };
 
     return (
-        <span
-            key={index}
-            onClick={() => handleToggleActionWord(word)}
-            className={`px-6 py-3 rounded-2xl text-2xl font-black shadow-md transform transition-transform cursor-pointer select-none border-2
-                ${isRead
-                    ? 'bg-transparent text-gray-300 border-gray-200 shadow-none scale-95'
-                    : 'hover:scale-105 hover:bg-slate-300 border-transparent'} 
-                ${extraClasses}`}
-            style={isRead ? {} : { backgroundColor: unreadBg, color: unreadText }}
-        >
-            {formattedWord}
-        </span>
-    );
-};
+        <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4 md:p-6">
+            <div className="max-w-6xl mx-auto">
+                {/* Header */}
+                <header className="text-center mb-8 bg-white p-6 rounded-xl shadow-lg">
+                    <h1 className="text-2xl md:text-3xl font-bold text-teal-600 mb-2 flex items-center justify-center gap-3">
+                        <LayoutGrid className="w-8 h-8" />
+                        Infografía Sermón Dinámico
+                    </h1>
+                    <p className="text-gray-500">Convierte tu sermón en una guía visual para predicar con confianza</p>
+                </header>
 
-const idea = mainIdea || sermonTitle || 'Transformando vidas a través de la Palabra';
+                {/* Editor Section */}
+                <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
+                    <h2 className="text-lg font-semibold text-teal-600 mb-4 pb-4 border-b-2 border-teal-500 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Importar Contenido
+                    </h2>
 
-const sectionConfig = {
-    lectura: { icon: '📖', title: 'LECTURA BÍBLICA', color: '#3498db', bg: 'linear-gradient(135deg, #ebf5fb 0%, #d6eaf8 100%)' },
-    desarrollo: { icon: '📚', title: 'DESARROLLO', color: '#27ae60', bg: 'linear-gradient(135deg, #eafaf1 0%, #d5f4e6 100%)' },
-    llamado: { icon: '🎯', title: 'LLAMADO', color: '#e67e22', bg: 'linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%)' },
-    conclusion: { icon: '✨', title: 'CONCLUSIÓN', color: '#8e44ad', bg: 'linear-gradient(135deg, #f4ecf7 0%, #ebdef0 100%)' }
-};
+                    {/* Import from Púlpito Button - PROMINENT */}
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-teal-50 border-2 border-dashed border-teal-400 rounded-xl">
+                        <div className="flex flex-col md:flex-row items-center gap-4">
+                            <button
+                                onClick={importFromPulpito}
+                                className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all hover:-translate-y-1 shadow-xl text-lg"
+                            >
+                                <ArrowDownCircle className="w-6 h-6" />
+                                📥 Importar desde Púlpito
+                            </button>
+                            <p className="text-gray-600 text-sm">
+                                Carga automáticamente el sermón actual del Editor con todas sus secciones
+                            </p>
+                        </div>
+                    </div>
 
-return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-4 md:p-6">
-        <div className="max-w-6xl mx-auto">
-            {/* Header */}
-            <header className="text-center mb-8 bg-white p-6 rounded-xl shadow-lg">
-                <h1 className="text-2xl md:text-3xl font-bold text-teal-600 mb-2 flex items-center justify-center gap-3">
-                    <LayoutGrid className="w-8 h-8" />
-                    Infografía Sermón Dinámico
-                </h1>
-                <p className="text-gray-500">Convierte tu sermón en una guía visual para predicar con confianza</p>
-            </header>
+                    {/* Show imported sermon info */}
+                    {pulpitoSections.length > 0 && (
+                        <div className="mb-6 p-4 bg-green-50 border border-green-300 rounded-xl">
+                            <h3 className="font-bold text-green-800 mb-2">✓ Sermón Importado</h3>
+                            <div className="grid md:grid-cols-2 gap-2 text-sm text-green-700">
+                                <p><strong>Título:</strong> {sermonTitle}</p>
+                                <p><strong>Predicador:</strong> {speaker || 'No especificado'}</p>
+                                <p><strong>Fecha:</strong> {sermonDate || 'No especificada'}</p>
+                                <p><strong>Cita Base:</strong> {mainVerse || 'No especificada'}</p>
+                                <p className="md:col-span-2"><strong>Secciones:</strong> {pulpitoSections.map(s => s.title).join(' → ')}</p>
+                            </div>
+                        </div>
+                    )}
 
-            {/* Editor Section */}
-            <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
-                <h2 className="text-lg font-semibold text-teal-600 mb-4 pb-4 border-b-2 border-teal-500 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Importar Contenido
-                </h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block font-semibold text-gray-700 mb-2">
+                                O pega contenido manualmente:
+                            </label>
+                            <textarea
+                                value={pulpitContent}
+                                onChange={(e) => setPulpitContent(e.target.value)}
+                                placeholder="Pega aquí el contenido de tu sermón..."
+                                className="w-full min-h-[120px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-y text-sm"
+                            />
+                        </div>
 
-                {/* Import from Púlpito Button - PROMINENT */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-teal-50 border-2 border-dashed border-teal-400 rounded-xl">
-                    <div className="flex flex-col md:flex-row items-center gap-4">
-                        <button
-                            onClick={importFromPulpito}
-                            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-teal-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-teal-700 transition-all hover:-translate-y-1 shadow-xl text-lg"
-                        >
-                            <ArrowDownCircle className="w-6 h-6" />
-                            📥 Importar desde Púlpito
-                        </button>
-                        <p className="text-gray-600 text-sm">
-                            Carga automáticamente el sermón actual del Editor con todas sus secciones
-                        </p>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block font-semibold text-gray-700 mb-2">Título del sermón:</label>
+                                <input
+                                    type="text"
+                                    value={sermonTitle}
+                                    onChange={(e) => setSermonTitle(e.target.value)}
+                                    placeholder="Ej: La Fe sin obras está muerta"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-semibold text-gray-700 mb-2">Idea central:</label>
+                                <input
+                                    type="text"
+                                    value={mainIdea}
+                                    onChange={(e) => setMainIdea(e.target.value)}
+                                    placeholder="Ej: Nuestra fe debe manifestarse en acciones"
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 pt-4">
+                            <button
+                                onClick={generateInfographia}
+                                className="flex items-center gap-2 px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-all hover:-translate-y-0.5 shadow-lg"
+                            >
+                                <Eye className="w-5 h-5" />
+                                Generar Infografía
+                            </button>
+                            <button
+                                onClick={clearFields}
+                                className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all"
+                            >
+                                <RefreshCw className="w-5 h-5" />
+                                Limpiar
+                            </button>
+
+                            <button
+                                onClick={handleUndo}
+                                disabled={historyIndex <= 0}
+                                className={`p-3 rounded-lg border-2 ${historyIndex <= 0 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400'}`}
+                                title="Deshacer cambio"
+                            >
+                                <Undo className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={handleRedo}
+                                disabled={historyIndex < 0 || historyIndex >= actionWordsHistory.length - 1}
+                                className={`p-3 rounded-lg border-2 ${historyIndex < 0 || historyIndex >= actionWordsHistory.length - 1 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400'}`}
+                                title="Rehacer cambio"
+                            >
+                                <Redo className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={handleRefreshHighlights}
+                                disabled={isRefining}
+                                title="Transformar destacados en frases bíblicas coherentes (IA)"
+                                className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all hover:-translate-y-0.5 shadow-lg ${isRefining ? 'bg-indigo-300 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
+                            >
+                                <RefreshCw className={`w-5 h-5 ${isRefining ? 'animate-spin' : ''}`} />
+                                {isRefining ? 'Refinando con IA...' : 'Refinar Destacados (IA)'}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {/* Show imported sermon info */}
-                {pulpitoSections.length > 0 && (
-                    <div className="mb-6 p-4 bg-green-50 border border-green-300 rounded-xl">
-                        <h3 className="font-bold text-green-800 mb-2">✓ Sermón Importado</h3>
-                        <div className="grid md:grid-cols-2 gap-2 text-sm text-green-700">
-                            <p><strong>Título:</strong> {sermonTitle}</p>
-                            <p><strong>Predicador:</strong> {speaker || 'No especificado'}</p>
-                            <p><strong>Fecha:</strong> {sermonDate || 'No especificada'}</p>
-                            <p><strong>Cita Base:</strong> {mainVerse || 'No especificada'}</p>
-                            <p className="md:col-span-2"><strong>Secciones:</strong> {pulpitoSections.map(s => s.title).join(' → ')}</p>
+                {/* View Toggle & Generated Content */}
+                {isGenerated && (
+                    <>
+                        <div className="flex flex-wrap gap-3 mb-6 bg-white p-4 rounded-xl shadow-lg">
+                            <button
+                                onClick={() => setActiveView('flow')}
+                                className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'flow' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
+                            >
+                                🔄 Flujo Visual
+                            </button>
+                            <button
+                                onClick={() => setActiveView('dashboard')}
+                                className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'dashboard' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
+                            >
+                                📊 Dashboard
+                            </button>
+                            <button
+                                onClick={() => setActiveView('predicador')}
+                                className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'predicador' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
+                            >
+                                <Mic className="w-4 h-4 inline mr-2" />
+                                Modo Predicador
+                            </button>
+                            {pulpitoSections.length > 0 && (
+                                <button
+                                    onClick={() => setActiveView('pulpito')}
+                                    className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'pulpito' ? 'bg-blue-600 text-white border-blue-600' : 'border-blue-500 text-blue-500 hover:bg-blue-50'}`}
+                                >
+                                    📜 Púlpito Original
+                                </button>
+                            )}
+                        </div>
+                        <div id="printable-area" className="bg-white">
+
+                            {/* FLUJO VISUAL - Tarjetas con FRASES CORTAS */}
+                            {activeView === 'flow' && (
+                                <div id="infografia-content" className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl shadow-lg p-6">
+                                    {/* Cabecera con idea central */}
+                                    <div className="text-center mb-8">
+                                        <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl px-8 py-4 shadow-xl">
+                                            <span className="text-4xl">💡</span>
+                                            <p className="text-xl font-black text-white mt-2">{idea}</p>
+                                        </div>
+                                        {mainVerse && (
+                                            <p className="mt-3 text-lg font-semibold text-blue-700">📖 {mainVerse}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Flujo de tarjetas conectadas */}
+                                    <div className="flex flex-wrap justify-center gap-4 mb-8">
+                                        {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map((key, index) => {
+                                            const config = sectionConfig[key];
+                                            const content = sections[key];
+                                            if (!content) return null;
+
+                                            const reflection = generateReflection(key, content);
+
+                                            return (
+                                                <div key={key} className="flex items-center">
+                                                    {/* Tarjeta Expandida */}
+                                                    <div
+                                                        className="w-96 p-6 rounded-xl shadow-lg text-center transform hover:scale-105 transition-transform"
+                                                        style={{ background: config.bg, border: `3px solid ${config.color}` }}
+                                                    >
+                                                        <span className="text-4xl">{config.icon}</span>
+                                                        <h3 className="text-lg font-black mt-2" style={{ color: config.color }}>
+                                                            {config.title}
+                                                        </h3>
+                                                        <p className="text-sm font-bold text-gray-600 mt-2">{reflection}</p>
+                                                        {/* Mostrar más contenido (resumen) en lugar de una sola frase */}
+                                                        <div className="mt-4 text-sm text-gray-700 leading-relaxed font-medium">
+                                                            "{smartTruncate(content, 180)}"
+                                                        </div>
+                                                    </div>
+                                                    {/* Flecha conectora */}
+                                                    {index < 3 && <span className="text-3xl text-gray-400 mx-2">→</span>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Palabras de Acción - Badges coloridos */}
+                                    {extractedInfo.actionWords.length > 0 && (
+                                        <div className="text-center mb-6">
+                                            <h4 className="font-bold text-purple-800 mb-3">🎯 ACCIONES CLAVE</h4>
+                                            <div className="flex flex-wrap justify-center gap-2">
+                                                {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-xl px-4 py-2"))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {extractedInfo.keyVerses.length > 0 && (
+                                        <div className="text-center p-4 bg-blue-100 rounded-xl">
+                                            <span className="text-blue-800 font-semibold">📖 </span>
+                                            {extractedInfo.keyVerses.map((v, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => handleVerseClick(v)}
+                                                    className="text-blue-700 font-medium mx-2 hover:bg-blue-200 px-2 py-1 rounded transition-colors underline decoration-blue-300"
+                                                >
+                                                    {v}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* DASHBOARD - Vista rápida con MÉTRICAS y FRASES */}
+                            {activeView === 'dashboard' && (
+                                <div id="infografia-content" className="bg-gradient-to-br from-slate-100 to-gray-200 rounded-xl shadow-lg p-6">
+                                    {/* Cabecera con título */}
+                                    <div className="text-center mb-6">
+                                        <h2 className="text-2xl font-black text-gray-800">📊 {sermonTitle || 'Resumen Rápido'}</h2>
+                                        <p className="text-blue-600 font-semibold">{mainVerse}</p>
+                                    </div>
+
+                                    {/* Grid de métricas visuales */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                        {/* Métrica: Secciones */}
+                                        <div className="bg-blue-500 text-white rounded-xl p-4 text-center shadow-lg">
+                                            <span className="text-3xl">📖</span>
+                                            <p className="text-3xl font-black mt-2">{Object.values(sections).filter(s => s).length}</p>
+                                            <p className="text-sm font-semibold">SECCIONES</p>
+                                        </div>
+                                        {/* Métrica: Versículos */}
+                                        <div className="bg-green-500 text-white rounded-xl p-4 text-center shadow-lg">
+                                            <span className="text-3xl">📜</span>
+                                            <p className="text-3xl font-black mt-2">{extractedInfo.keyVerses.length || 1}</p>
+                                            <p className="text-sm font-semibold">VERSÍCULOS</p>
+                                        </div>
+                                        {/* Métrica: Palabras Clave */}
+                                        <div className="bg-purple-500 text-white rounded-xl p-4 text-center shadow-lg">
+                                            <span className="text-3xl">🎯</span>
+                                            <p className="text-3xl font-black mt-2">{extractedInfo.actionWords.length}</p>
+                                            <p className="text-sm font-semibold">ACCIONES</p>
+                                        </div>
+                                        {/* Métrica: Frases */}
+                                        <div className="bg-orange-500 text-white rounded-xl p-4 text-center shadow-lg">
+                                            <span className="text-3xl">💬</span>
+                                            <p className="text-3xl font-black mt-2">{extractedInfo.impactPhrases.length || 3}</p>
+                                            <p className="text-sm font-semibold">IDEAS CLAVE</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Resumen por sección - solo frases */}
+                                    <div className="grid md:grid-cols-2 gap-4 mb-6">
+                                        {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
+                                            const config = sectionConfig[key];
+                                            const content = sections[key];
+                                            if (!content) return null;
+
+                                            const phrases = extractKeyPhrases(content, 2);
+
+                                            return (
+                                                <div
+                                                    key={key}
+                                                    className="bg-white rounded-xl p-4 shadow-md"
+                                                    style={{ borderTop: `4px solid ${config.color}` }}
+                                                >
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-2xl">{config.icon}</span>
+                                                        <h4 className="font-black" style={{ color: config.color }}>
+                                                            {config.title}
+                                                        </h4>
+                                                    </div>
+                                                    {phrases.length > 0 ? (
+                                                        <ul className="text-sm text-gray-700 space-y-1">
+                                                            {phrases.map((p, i) => (
+                                                                <li key={i} className="flex items-start gap-2">
+                                                                    <span style={{ color: config.color }}>▸</span>
+                                                                    <span className="italic">"{p}"</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : (
+                                                        <p className="text-sm text-gray-500 italic">{generateReflection(key, content)}</p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Idea Central destacada */}
+                                    <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-6 text-center text-white shadow-xl mb-6">
+                                        <span className="text-4xl">💡</span>
+                                        <p className="text-xl font-black mt-2">{idea}</p>
+                                    </div>
+
+                                    {/* Versículos al pie (NUEVO para Dashboard) */}
+                                    {extractedInfo.keyVerses.length > 0 && (
+                                        <div className="mb-6 p-4 bg-blue-100 rounded-xl text-center">
+                                            <h4 className="font-bold text-blue-800 mb-2 flex items-center justify-center gap-2">
+                                                <BookOpen className="w-4 h-4" /> VERSÍCULOS CLAVE
+                                            </h4>
+                                            <div className="flex flex-wrap gap-2 justify-center">
+                                                {extractedInfo.keyVerses.map((verse, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleVerseClick(verse)}
+                                                        className="text-lg font-semibold text-blue-700 hover:text-white hover:bg-blue-600 px-3 py-1 rounded transition-colors underline decoration-blue-400/50"
+                                                    >
+                                                        {verse}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Palabras de Acción */}
+                                    {extractedInfo.actionWords.length > 0 && (
+                                        <div className="text-center">
+                                            <h4 className="font-bold text-gray-700 mb-3">🔥 ACCIONES</h4>
+                                            <div className="flex flex-wrap justify-center gap-2">
+                                                {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-sm px-3 py-1"))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Predicador View - ALTAMENTE VISUAL para lectura rápida */}
+                            {activeView === 'predicador' && (
+                                <div id="infografia-content" className="bg-gray-900 text-white rounded-xl shadow-lg p-8 min-h-[600px]">
+                                    {/* Título y Versículo - CONTENEDOR UNIFICADO */}
+                                    <div className="text-center mb-10 p-6 bg-blue-800 rounded-2xl shadow-xl border-4 border-blue-600">
+                                        <h2 className="text-4xl font-black text-white mb-4 tracking-wide uppercase leading-tight">{sermonTitle || 'MENSAJE'}</h2>
+
+                                        {mainVerse && (
+                                            <div className="mt-4 pt-4 border-t border-blue-500">
+                                                <p className="text-2xl font-bold text-yellow-400 mb-2">📖 {mainVerse}</p>
+                                                {mainVerseText && (
+                                                    <p className="text-lg text-blue-100 italic font-serif">"{mainVerseText}"</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* PALABRAS CLAVE - SÚPER DESTACADAS */}
+                                    {extractedInfo.actionWords.length > 0 && (
+                                        <div className="mb-8 text-center">
+                                            <h3 className="text-2xl font-bold text-yellow-400 mb-4">🎯 PALABRAS CLAVE</h3>
+                                            <div className="flex flex-wrap justify-center gap-4">
+                                                {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* SECCIONES - Solo puntos clave con íconos grandes */}
+                                    <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                        {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
+                                            const config = sectionConfig[key];
+                                            const content = sections[key];
+                                            if (!content) return null;
+
+                                            {/* Extraer solo las primeras 2 oraciones */ }
+                                            const shortContent = smartTruncate(content, 200);
+
+                                            return (
+                                                <div
+                                                    key={key}
+                                                    className="p-6 rounded-2xl"
+                                                    style={{ background: config.bg, border: `3px solid ${config.color}` }}
+                                                >
+                                                    <div className="flex items-center gap-4 mb-4">
+                                                        <span className="text-5xl">{config.icon}</span>
+                                                        <h3 className="text-2xl font-black" style={{ color: config.color }}>
+                                                            {config.title.toUpperCase()}
+                                                        </h3>
+                                                    </div>
+                                                    <p className="text-lg text-gray-800 leading-relaxed font-medium">
+                                                        {shortContent}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* CONCLUSIÓN - Destacada */}
+                                    <div className="p-8 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl text-center shadow-2xl">
+                                        <span className="text-5xl">🙏</span>
+                                        <h3 className="text-3xl font-black mt-4 mb-4">CONCLUSIÓN</h3>
+                                        <p className="text-2xl font-medium leading-relaxed">{smartTruncate(sections.conclusion || idea, 250)}</p>
+                                    </div>
+
+                                    {/* Versículos al pie - referencia rápida */}
+                                    {extractedInfo.keyVerses.length > 0 && (
+                                        <div className="mt-6 p-4 bg-blue-900/70 rounded-xl text-center">
+                                            <div className="flex flex-wrap gap-2 justify-center">
+                                                {extractedInfo.keyVerses.map((verse, i) => (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleVerseClick(verse)}
+                                                        className="text-lg text-blue-300 hover:text-white hover:bg-blue-800 px-3 py-1 rounded transition-colors underline decoration-blue-500/50"
+                                                    >
+                                                        📖 {verse}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+
+                            {/* SECCIÓN PÚLPITO ORIGINAL - SIEMPRE VISIBLE AL FINAL */}
+                            {pulpitoSections.length > 0 && (
+                                <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
+                                    <h3 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">📜 Estructura del Mensaje</h3>
+
+                                    {/* Header with sermon info */}
+                                    <div className="text-center mb-6 p-4 bg-gray-50 rounded-xl">
+                                        <h2 className="text-xl font-bold mb-2 text-gray-800">{sermonTitle}</h2>
+                                        <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+                                            {speaker && <span>👤 {speaker}</span>}
+                                            {sermonDate && <span>📅 {sermonDate}</span>}
+                                            {mainVerse && <span>📖 {mainVerse}</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Sections in exact order */}
+                                    <div className="space-y-4">
+                                        {pulpitoSections.map((section, index) => (
+                                            <div
+                                                key={section.id}
+                                                className="p-4 rounded-lg bg-gray-50 border border-gray-200 hover:bg-white hover:shadow-md transition-all"
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <h4 className="font-bold text-gray-700 flex items-center gap-2">
+                                                        <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
+                                                            {index + 1}
+                                                        </span>
+                                                        {section.title}
+                                                    </h4>
+                                                    <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                                                        {section.durationMin} min
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className="text-gray-600 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none transition-all"
+                                                    dangerouslySetInnerHTML={{ __html: section.content }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Export Section - ALWAYS VISIBLE FIXED BOTTOM OR AFTER CONTENT */}
+                        <div className="flex flex-wrap justify-center gap-4 mt-8 pt-6 pb-20 border-t border-gray-300">
+                            <button onClick={printInfographia} className="px-6 py-2 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-all shadow-md">
+                                IMPRIMIR INFOGRAFÍA
+                            </button>
+                            <button onClick={downloadWord} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md">
+                                EXPORTAR WORD
+                            </button>
+                            <button onClick={copyToClipboard} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-all shadow-sm">
+                                COPIAR TEXTO
+                            </button>
+                            <button onClick={downloadJSON} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-all shadow-sm">
+                                DESCARGAR JSON
+                            </button>
+                        </div>
+                    </>
+                )}
+                {/* VERSE MODAL - HIGH Z-INDEX */}
+                {selectedVerse && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedVerse(null)}>
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 ring-4 ring-blue-500/30" onClick={e => e.stopPropagation()}>
+                            <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white shadow-md">
+                                <h3 className="text-xl font-bold flex items-center gap-2">
+                                    <BookOpen className="w-6 h-6" />
+                                    {selectedVerse.ref}
+                                </h3>
+                                <button onClick={() => setSelectedVerse(null)} className="hover:bg-blue-700 p-2 rounded-full transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+                            <div className="p-8 bg-gradient-to-br from-white to-blue-50 min-h-[200px] flex flex-col justify-center">
+                                {isLoadingVerse && selectedVerse.text === 'Cargando...' ? (
+                                    <div className="flex flex-col items-center justify-center py-4 text-blue-500">
+                                        <Loader2 className="w-12 h-12 animate-spin mb-4" />
+                                        <p className="font-medium animate-pulse">Buscando en las Escrituras...</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-2xl leading-relaxed font-serif text-gray-800 italic text-center drop-shadow-sm">
+                                            "{selectedVerse.text}"
+                                        </p>
+                                        <div className="mt-8 pt-4 border-t border-blue-100 text-center">
+                                            <span className="text-xs font-bold text-blue-400 uppercase tracking-widest border border-blue-200 px-3 py-1 rounded-full">Reina Valera 1960</span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
-
-                <div className="space-y-4">
-                    <div>
-                        <label className="block font-semibold text-gray-700 mb-2">
-                            O pega contenido manualmente:
-                        </label>
-                        <textarea
-                            value={pulpitContent}
-                            onChange={(e) => setPulpitContent(e.target.value)}
-                            placeholder="Pega aquí el contenido de tu sermón..."
-                            className="w-full min-h-[120px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 resize-y text-sm"
-                        />
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block font-semibold text-gray-700 mb-2">Título del sermón:</label>
-                            <input
-                                type="text"
-                                value={sermonTitle}
-                                onChange={(e) => setSermonTitle(e.target.value)}
-                                placeholder="Ej: La Fe sin obras está muerta"
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block font-semibold text-gray-700 mb-2">Idea central:</label>
-                            <input
-                                type="text"
-                                value={mainIdea}
-                                onChange={(e) => setMainIdea(e.target.value)}
-                                placeholder="Ej: Nuestra fe debe manifestarse en acciones"
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3 pt-4">
-                        <button
-                            onClick={generateInfographia}
-                            className="flex items-center gap-2 px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg hover:bg-teal-600 transition-all hover:-translate-y-0.5 shadow-lg"
-                        >
-                            <Eye className="w-5 h-5" />
-                            Generar Infografía
-                        </button>
-                        <button
-                            onClick={clearFields}
-                            className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all"
-                        >
-                            <RefreshCw className="w-5 h-5" />
-                            Limpiar
-                        </button>
-
-                        <button
-                            onClick={handleUndo}
-                            disabled={historyIndex <= 0}
-                            className={`p-3 rounded-lg border-2 ${historyIndex <= 0 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400'}`}
-                            title="Deshacer cambio"
-                        >
-                            <Undo className="w-5 h-5" />
-                        </button>
-
-                        <button
-                            onClick={handleRedo}
-                            disabled={historyIndex < 0 || historyIndex >= actionWordsHistory.length - 1}
-                            className={`p-3 rounded-lg border-2 ${historyIndex < 0 || historyIndex >= actionWordsHistory.length - 1 ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-400'}`}
-                            title="Rehacer cambio"
-                        >
-                            <Redo className="w-5 h-5" />
-                        </button>
-
-                        <button
-                            onClick={handleRefreshHighlights}
-                            disabled={isRefining}
-                            title="Transformar destacados en frases bíblicas coherentes (IA)"
-                            className={`flex items-center gap-2 px-6 py-3 font-semibold rounded-lg transition-all hover:-translate-y-0.5 shadow-lg ${isRefining ? 'bg-indigo-300 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
-                        >
-                            <RefreshCw className={`w-5 h-5 ${isRefining ? 'animate-spin' : ''}`} />
-                            {isRefining ? 'Refinando con IA...' : 'Refinar Destacados (IA)'}
-                        </button>
-                    </div>
-                </div>
             </div>
-
-            {/* View Toggle & Generated Content */}
-            {isGenerated && (
-                <>
-                    <div className="flex flex-wrap gap-3 mb-6 bg-white p-4 rounded-xl shadow-lg">
-                        <button
-                            onClick={() => setActiveView('flow')}
-                            className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'flow' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
-                        >
-                            🔄 Flujo Visual
-                        </button>
-                        <button
-                            onClick={() => setActiveView('dashboard')}
-                            className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'dashboard' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
-                        >
-                            📊 Dashboard
-                        </button>
-                        <button
-                            onClick={() => setActiveView('predicador')}
-                            className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'predicador' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
-                        >
-                            <Mic className="w-4 h-4 inline mr-2" />
-                            Modo Predicador
-                        </button>
-                        {pulpitoSections.length > 0 && (
-                            <button
-                                onClick={() => setActiveView('pulpito')}
-                                className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'pulpito' ? 'bg-blue-600 text-white border-blue-600' : 'border-blue-500 text-blue-500 hover:bg-blue-50'}`}
-                            >
-                                📜 Púlpito Original
-                            </button>
-                        )}
-                    </div>
-
-                    {/* FLUJO VISUAL - Tarjetas con FRASES CORTAS */}
-                    {activeView === 'flow' && (
-                        <div id="infografia-content" className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl shadow-lg p-6">
-                            {/* Cabecera con idea central */}
-                            <div className="text-center mb-8">
-                                <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl px-8 py-4 shadow-xl">
-                                    <span className="text-4xl">💡</span>
-                                    <p className="text-xl font-black text-white mt-2">{idea}</p>
-                                </div>
-                                {mainVerse && (
-                                    <p className="mt-3 text-lg font-semibold text-blue-700">📖 {mainVerse}</p>
-                                )}
-                            </div>
-
-                            {/* Flujo de tarjetas conectadas */}
-                            <div className="flex flex-wrap justify-center gap-4 mb-8">
-                                {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map((key, index) => {
-                                    const config = sectionConfig[key];
-                                    const content = sections[key];
-                                    if (!content) return null;
-
-                                    const reflection = generateReflection(key, content);
-
-                                    return (
-                                        <div key={key} className="flex items-center">
-                                            {/* Tarjeta Expandida */}
-                                            <div
-                                                className="w-96 p-6 rounded-xl shadow-lg text-center transform hover:scale-105 transition-transform"
-                                                style={{ background: config.bg, border: `3px solid ${config.color}` }}
-                                            >
-                                                <span className="text-4xl">{config.icon}</span>
-                                                <h3 className="text-lg font-black mt-2" style={{ color: config.color }}>
-                                                    {config.title}
-                                                </h3>
-                                                <p className="text-sm font-bold text-gray-600 mt-2">{reflection}</p>
-                                                {/* Mostrar más contenido (resumen) en lugar de una sola frase */}
-                                                <div className="mt-4 text-sm text-gray-700 leading-relaxed font-medium">
-                                                    "{smartTruncate(content, 180)}"
-                                                </div>
-                                            </div>
-                                            {/* Flecha conectora */}
-                                            {index < 3 && <span className="text-3xl text-gray-400 mx-2">→</span>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Palabras de Acción - Badges coloridos */}
-                            {extractedInfo.actionWords.length > 0 && (
-                                <div className="text-center mb-6">
-                                    <h4 className="font-bold text-purple-800 mb-3">🎯 ACCIONES CLAVE</h4>
-                                    <div className="flex flex-wrap justify-center gap-2">
-                                        {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-xl px-4 py-2"))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {extractedInfo.keyVerses.length > 0 && (
-                                <div className="text-center p-4 bg-blue-100 rounded-xl">
-                                    <span className="text-blue-800 font-semibold">📖 </span>
-                                    {extractedInfo.keyVerses.map((v, i) => (
-                                        <button
-                                            key={i}
-                                            onClick={() => handleVerseClick(v)}
-                                            className="text-blue-700 font-medium mx-2 hover:bg-blue-200 px-2 py-1 rounded transition-colors underline decoration-blue-300"
-                                        >
-                                            {v}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* DASHBOARD - Vista rápida con MÉTRICAS y FRASES */}
-                    {activeView === 'dashboard' && (
-                        <div id="infografia-content" className="bg-gradient-to-br from-slate-100 to-gray-200 rounded-xl shadow-lg p-6">
-                            {/* Cabecera con título */}
-                            <div className="text-center mb-6">
-                                <h2 className="text-2xl font-black text-gray-800">📊 {sermonTitle || 'Resumen Rápido'}</h2>
-                                <p className="text-blue-600 font-semibold">{mainVerse}</p>
-                            </div>
-
-                            {/* Grid de métricas visuales */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                {/* Métrica: Secciones */}
-                                <div className="bg-blue-500 text-white rounded-xl p-4 text-center shadow-lg">
-                                    <span className="text-3xl">📖</span>
-                                    <p className="text-3xl font-black mt-2">{Object.values(sections).filter(s => s).length}</p>
-                                    <p className="text-sm font-semibold">SECCIONES</p>
-                                </div>
-                                {/* Métrica: Versículos */}
-                                <div className="bg-green-500 text-white rounded-xl p-4 text-center shadow-lg">
-                                    <span className="text-3xl">📜</span>
-                                    <p className="text-3xl font-black mt-2">{extractedInfo.keyVerses.length || 1}</p>
-                                    <p className="text-sm font-semibold">VERSÍCULOS</p>
-                                </div>
-                                {/* Métrica: Palabras Clave */}
-                                <div className="bg-purple-500 text-white rounded-xl p-4 text-center shadow-lg">
-                                    <span className="text-3xl">🎯</span>
-                                    <p className="text-3xl font-black mt-2">{extractedInfo.actionWords.length}</p>
-                                    <p className="text-sm font-semibold">ACCIONES</p>
-                                </div>
-                                {/* Métrica: Frases */}
-                                <div className="bg-orange-500 text-white rounded-xl p-4 text-center shadow-lg">
-                                    <span className="text-3xl">💬</span>
-                                    <p className="text-3xl font-black mt-2">{extractedInfo.impactPhrases.length || 3}</p>
-                                    <p className="text-sm font-semibold">IDEAS CLAVE</p>
-                                </div>
-                            </div>
-
-                            {/* Resumen por sección - solo frases */}
-                            <div className="grid md:grid-cols-2 gap-4 mb-6">
-                                {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
-                                    const config = sectionConfig[key];
-                                    const content = sections[key];
-                                    if (!content) return null;
-
-                                    const phrases = extractKeyPhrases(content, 2);
-
-                                    return (
-                                        <div
-                                            key={key}
-                                            className="bg-white rounded-xl p-4 shadow-md"
-                                            style={{ borderTop: `4px solid ${config.color}` }}
-                                        >
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-2xl">{config.icon}</span>
-                                                <h4 className="font-black" style={{ color: config.color }}>
-                                                    {config.title}
-                                                </h4>
-                                            </div>
-                                            {phrases.length > 0 ? (
-                                                <ul className="text-sm text-gray-700 space-y-1">
-                                                    {phrases.map((p, i) => (
-                                                        <li key={i} className="flex items-start gap-2">
-                                                            <span style={{ color: config.color }}>▸</span>
-                                                            <span className="italic">"{p}"</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-sm text-gray-500 italic">{generateReflection(key, content)}</p>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Idea Central destacada */}
-                            <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl p-6 text-center text-white shadow-xl mb-6">
-                                <span className="text-4xl">💡</span>
-                                <p className="text-xl font-black mt-2">{idea}</p>
-                            </div>
-
-                            {/* Versículos al pie (NUEVO para Dashboard) */}
-                            {extractedInfo.keyVerses.length > 0 && (
-                                <div className="mb-6 p-4 bg-blue-100 rounded-xl text-center">
-                                    <h4 className="font-bold text-blue-800 mb-2 flex items-center justify-center gap-2">
-                                        <BookOpen className="w-4 h-4" /> VERSÍCULOS CLAVE
-                                    </h4>
-                                    <div className="flex flex-wrap gap-2 justify-center">
-                                        {extractedInfo.keyVerses.map((verse, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => handleVerseClick(verse)}
-                                                className="text-lg font-semibold text-blue-700 hover:text-white hover:bg-blue-600 px-3 py-1 rounded transition-colors underline decoration-blue-400/50"
-                                            >
-                                                {verse}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Palabras de Acción */}
-                            {extractedInfo.actionWords.length > 0 && (
-                                <div className="text-center">
-                                    <h4 className="font-bold text-gray-700 mb-3">🔥 ACCIONES</h4>
-                                    <div className="flex flex-wrap justify-center gap-2">
-                                        {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-sm px-3 py-1"))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Predicador View - ALTAMENTE VISUAL para lectura rápida */}
-                    {activeView === 'predicador' && (
-                        <div id="infografia-content" className="bg-gray-900 text-white rounded-xl shadow-lg p-8 min-h-[600px]">
-                            {/* Título y Versículo - CONTENEDOR UNIFICADO */}
-                            <div className="text-center mb-10 p-6 bg-blue-800 rounded-2xl shadow-xl border-4 border-blue-600">
-                                <h2 className="text-4xl font-black text-white mb-4 tracking-wide uppercase leading-tight">{sermonTitle || 'MENSAJE'}</h2>
-
-                                {mainVerse && (
-                                    <div className="mt-4 pt-4 border-t border-blue-500">
-                                        <p className="text-2xl font-bold text-yellow-400 mb-2">📖 {mainVerse}</p>
-                                        {mainVerseText && (
-                                            <p className="text-lg text-blue-100 italic font-serif">"{mainVerseText}"</p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* PALABRAS CLAVE - SÚPER DESTACADAS */}
-                            {extractedInfo.actionWords.length > 0 && (
-                                <div className="mb-8 text-center">
-                                    <h3 className="text-2xl font-bold text-yellow-400 mb-4">🎯 PALABRAS CLAVE</h3>
-                                    <div className="flex flex-wrap justify-center gap-4">
-                                        {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* SECCIONES - Solo puntos clave con íconos grandes */}
-                            <div className="grid md:grid-cols-2 gap-6 mb-8">
-                                {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
-                                    const config = sectionConfig[key];
-                                    const content = sections[key];
-                                    if (!content) return null;
-
-                                    {/* Extraer solo las primeras 2 oraciones */ }
-                                    const shortContent = smartTruncate(content, 200);
-
-                                    return (
-                                        <div
-                                            key={key}
-                                            className="p-6 rounded-2xl"
-                                            style={{ background: config.bg, border: `3px solid ${config.color}` }}
-                                        >
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <span className="text-5xl">{config.icon}</span>
-                                                <h3 className="text-2xl font-black" style={{ color: config.color }}>
-                                                    {config.title.toUpperCase()}
-                                                </h3>
-                                            </div>
-                                            <p className="text-lg text-gray-800 leading-relaxed font-medium">
-                                                {shortContent}
-                                            </p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* CONCLUSIÓN - Destacada */}
-                            <div className="p-8 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl text-center shadow-2xl">
-                                <span className="text-5xl">🙏</span>
-                                <h3 className="text-3xl font-black mt-4 mb-4">CONCLUSIÓN</h3>
-                                <p className="text-2xl font-medium leading-relaxed">{smartTruncate(sections.conclusion || idea, 250)}</p>
-                            </div>
-
-                            {/* Versículos al pie - referencia rápida */}
-                            {extractedInfo.keyVerses.length > 0 && (
-                                <div className="mt-6 p-4 bg-blue-900/70 rounded-xl text-center">
-                                    <div className="flex flex-wrap gap-2 justify-center">
-                                        {extractedInfo.keyVerses.map((verse, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => handleVerseClick(verse)}
-                                                className="text-lg text-blue-300 hover:text-white hover:bg-blue-800 px-3 py-1 rounded transition-colors underline decoration-blue-500/50"
-                                            >
-                                                📖 {verse}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-
-                    {/* SECCIÓN PÚLPITO ORIGINAL - SIEMPRE VISIBLE AL FINAL */}
-                    {pulpitoSections.length > 0 && (
-                        <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border-t-4 border-blue-600">
-                            <h3 className="text-xl font-bold mb-4 text-gray-800 border-b pb-2">📜 Estructura del Mensaje</h3>
-
-                            {/* Header with sermon info */}
-                            <div className="text-center mb-6 p-4 bg-gray-50 rounded-xl">
-                                <h2 className="text-xl font-bold mb-2 text-gray-800">{sermonTitle}</h2>
-                                <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-                                    {speaker && <span>👤 {speaker}</span>}
-                                    {sermonDate && <span>📅 {sermonDate}</span>}
-                                    {mainVerse && <span>📖 {mainVerse}</span>}
-                                </div>
-                            </div>
-
-                            {/* Sections in exact order */}
-                            <div className="space-y-4">
-                                {pulpitoSections.map((section, index) => (
-                                    <div
-                                        key={section.id}
-                                        className="p-4 rounded-lg bg-gray-50 border border-gray-200 hover:bg-white hover:shadow-md transition-all"
-                                    >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="font-bold text-gray-700 flex items-center gap-2">
-                                                <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
-                                                    {index + 1}
-                                                </span>
-                                                {section.title}
-                                            </h4>
-                                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                                                {section.durationMin} min
-                                            </span>
-                                        </div>
-                                        <div
-                                            className="text-gray-600 text-sm leading-relaxed line-clamp-3 hover:line-clamp-none transition-all"
-                                            dangerouslySetInnerHTML={{ __html: section.content }}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Export Section - ALWAYS VISIBLE FIXED BOTTOM OR AFTER CONTENT */}
-                    <div className="flex flex-wrap justify-center gap-4 mt-8 pt-6 pb-20 border-t border-gray-300">
-                        <button onClick={printInfographia} className="px-6 py-2 bg-teal-600 text-white font-bold rounded-lg hover:bg-teal-700 transition-all shadow-md">
-                            IMPRIMIR INFOGRAFÍA
-                        </button>
-                        <button onClick={downloadWord} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md">
-                            EXPORTAR WORD
-                        </button>
-                        <button onClick={copyToClipboard} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-all shadow-sm">
-                            COPIAR TEXTO
-                        </button>
-                        <button onClick={downloadJSON} className="px-6 py-2 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300 transition-all shadow-sm">
-                            DESCARGAR JSON
-                        </button>
-                    </div>
-                </>
-            )}
-            {/* VERSE MODAL - HIGH Z-INDEX */}
-            {selectedVerse && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in" onClick={() => setSelectedVerse(null)}>
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100 ring-4 ring-blue-500/30" onClick={e => e.stopPropagation()}>
-                        <div className="bg-blue-600 px-6 py-4 flex justify-between items-center text-white shadow-md">
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <BookOpen className="w-6 h-6" />
-                                {selectedVerse.ref}
-                            </h3>
-                            <button onClick={() => setSelectedVerse(null)} className="hover:bg-blue-700 p-2 rounded-full transition-colors">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-                        <div className="p-8 bg-gradient-to-br from-white to-blue-50 min-h-[200px] flex flex-col justify-center">
-                            {isLoadingVerse && selectedVerse.text === 'Cargando...' ? (
-                                <div className="flex flex-col items-center justify-center py-4 text-blue-500">
-                                    <Loader2 className="w-12 h-12 animate-spin mb-4" />
-                                    <p className="font-medium animate-pulse">Buscando en las Escrituras...</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <p className="text-2xl leading-relaxed font-serif text-gray-800 italic text-center drop-shadow-sm">
-                                        "{selectedVerse.text}"
-                                    </p>
-                                    <div className="mt-8 pt-4 border-t border-blue-100 text-center">
-                                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest border border-blue-200 px-3 py-1 rounded-full">Reina Valera 1960</span>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
-    </div>
-);
+    );
 };
