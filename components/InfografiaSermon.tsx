@@ -488,7 +488,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
             const highlighted = extractColoredWords(pulpitContent);
 
             if (highlighted.length === 0) {
-                alert('No se encontraron palabras destacadas (negrita, color, etc) en el sermón.');
+                alert('No se encontraron palabras destacadas con color. Por favor marque las palabras clave con un color o fondo destacado.');
                 setIsRefining(false);
                 return;
             }

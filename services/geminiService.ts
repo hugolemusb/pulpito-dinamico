@@ -89,6 +89,13 @@ export const extractColoredWords = (html: string): string[] => {
     if (element.className && (element.className.includes('color') || element.className.includes('bg-'))) {
       addWord(element.textContent);
     }
+    // D. Tags semánticos de resaltado (mark)
+    if (element.tagName === 'MARK') addWord(element.textContent);
+
+    // E. Legacy font tag
+    if (element.tagName === 'FONT' && (element.getAttribute('color') || element.getAttribute('style')?.includes('color'))) {
+      addWord(element.textContent);
+    }
   });
 
   return [...new Set(coloredWords)];
