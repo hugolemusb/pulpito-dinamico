@@ -845,12 +845,6 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                 🔄 Flujo Visual
                             </button>
                             <button
-                                onClick={() => setActiveView('radial')}
-                                className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'radial' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
-                            >
-                                ⭐ Vista Radial
-                            </button>
-                            <button
                                 onClick={() => setActiveView('dashboard')}
                                 className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'dashboard' ? 'bg-teal-500 text-white border-teal-500' : 'border-teal-500 text-teal-500 hover:bg-teal-50'}`}
                             >
@@ -862,12 +856,6 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                             >
                                 <Mic className="w-4 h-4 inline mr-2" />
                                 Modo Predicador
-                            </button>
-                            <button
-                                onClick={() => setActiveView('timeline')}
-                                className={`px-5 py-2 rounded-lg font-semibold transition-all border-2 ${activeView === 'timeline' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-indigo-500 text-indigo-500 hover:bg-indigo-50'}`}
-                            >
-                                ⏱️ Línea de Tiempo
                             </button>
                             {pulpitoSections.length > 0 && (
                                 <button
@@ -905,9 +893,9 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
 
                                         return (
                                             <div key={key} className="flex items-center">
-                                                {/* Tarjeta */}
+                                                {/* Tarjeta Expandida */}
                                                 <div
-                                                    className="w-64 p-4 rounded-xl shadow-lg text-center transform hover:scale-105 transition-transform"
+                                                    className="w-96 p-6 rounded-xl shadow-lg text-center transform hover:scale-105 transition-transform"
                                                     style={{ background: config.bg, border: `3px solid ${config.color}` }}
                                                 >
                                                     <span className="text-4xl">{config.icon}</span>
@@ -915,11 +903,10 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                                         {config.title}
                                                     </h3>
                                                     <p className="text-sm font-bold text-gray-600 mt-2">{reflection}</p>
-                                                    {phrases.length > 0 && (
-                                                        <div className="mt-3 text-xs text-gray-700 italic">
-                                                            "{phrases[0]}"
-                                                        </div>
-                                                    )}
+                                                    {/* Mostrar más contenido (resumen) en lugar de una sola frase */}
+                                                    <div className="mt-4 text-sm text-gray-700 leading-relaxed font-medium">
+                                                        "{smartTruncate(content, 180)}"
+                                                    </div>
                                                 </div>
                                                 {/* Flecha conectora */}
                                                 {index < 3 && <span className="text-3xl text-gray-400 mx-2">→</span>}
@@ -950,64 +937,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                             </div>
                         )}
 
-                        {/* VISTA RADIAL - Círculos expandiendo del centro con FRASES CORTAS */}
-                        {activeView === 'radial' && (
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl shadow-lg p-6">
-                                {/* Centro: Idea Principal */}
-                                <div className="flex justify-center mb-8">
-                                    <div className="w-48 h-48 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex flex-col items-center justify-center shadow-2xl text-center p-4">
-                                        <span className="text-5xl">💡</span>
-                                        <p className="text-lg font-black text-white mt-2 leading-tight">{idea}</p>
-                                    </div>
-                                </div>
 
-                                {/* Círculos satélite con frases clave */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                    {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map(key => {
-                                        const config = sectionConfig[key];
-                                        const content = sections[key];
-                                        if (!content) return null;
-
-                                        // Obtener UNA sola frase clave
-                                        const phrases = extractKeyPhrases(content, 1);
-                                        const phrase = phrases[0] || generateReflection(key, content);
-
-                                        return (
-                                            <div key={key} className="text-center">
-                                                <div
-                                                    className="w-24 h-24 mx-auto rounded-full flex flex-col items-center justify-center shadow-lg"
-                                                    style={{ background: config.bg, border: `4px solid ${config.color}` }}
-                                                >
-                                                    <span className="text-3xl">{config.icon}</span>
-                                                    <span className="text-xs font-bold" style={{ color: config.color }}>
-                                                        {config.title}
-                                                    </span>
-                                                </div>
-                                                <p className="mt-2 text-sm font-medium text-gray-700 italic px-2">
-                                                    "{phrase}"
-                                                </p>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Versículo Principal - Grande */}
-                                {mainVerse && (
-                                    <div className="text-center p-4 bg-blue-600 text-white rounded-full shadow-lg mb-6">
-                                        <span className="text-xl font-bold">📖 {mainVerse}</span>
-                                    </div>
-                                )}
-
-                                {/* Palabras de Acción en órbita */}
-                                {extractedInfo.actionWords.length > 0 && (
-                                    <div className="text-center">
-                                        <div className="inline-flex flex-wrap justify-center gap-3 p-4 bg-purple-100 rounded-3xl">
-                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-lg px-4 py-2"))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                         {/* DASHBOARD - Vista rápida con MÉTRICAS y FRASES */}
                         {activeView === 'dashboard' && (
@@ -1106,11 +1036,16 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                         {activeView === 'predicador' && (
                             <div className="bg-gray-900 text-white rounded-xl shadow-lg p-8 min-h-[600px]">
                                 {/* Título y Versículo - GRANDE */}
-                                <div className="text-center mb-6">
-                                    <h2 className="text-4xl font-black text-white mb-4 tracking-wide">{sermonTitle || '📢 MENSAJE'}</h2>
+                                {/* Título y Versículo - CONTENEDOR UNIFICADO */}
+                                <div className="text-center mb-10 p-6 bg-blue-800 rounded-2xl shadow-xl border-4 border-blue-600">
+                                    <h2 className="text-4xl font-black text-white mb-4 tracking-wide uppercase leading-tight">{sermonTitle || 'MENSAJE'}</h2>
+
                                     {mainVerse && (
-                                        <div className="inline-block bg-blue-600 rounded-2xl px-8 py-4">
-                                            <p className="text-3xl font-bold text-white">📖 {mainVerse}</p>
+                                        <div className="mt-4 pt-4 border-t border-blue-500">
+                                            <p className="text-2xl font-bold text-yellow-400 mb-2">📖 {mainVerse}</p>
+                                            {mainVerseText && (
+                                                <p className="text-lg text-blue-100 italic font-serif">"{mainVerseText}"</p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -1234,97 +1169,7 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                             )
                         }
 
-                        {/* Timeline View - Línea de Tiempo */}
-                        {
-                            activeView === 'timeline' && (
-                                <div className="bg-white rounded-xl shadow-lg p-6">
-                                    {/* Header */}
-                                    <div className="text-center mb-8">
-                                        <h2 className="text-2xl font-bold text-gray-800 mb-2">⏱️ Línea de Tiempo del Sermón</h2>
-                                        <p className="text-gray-600">{sermonTitle}</p>
-                                        {mainVerse && <p className="text-blue-600 text-sm mt-1">📖 {mainVerse}</p>}
-                                    </div>
 
-                                    {/* Timeline */}
-                                    <div className="relative">
-                                        {/* Línea central */}
-                                        <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-blue-500 via-green-500 via-orange-500 to-purple-500"></div>
-
-                                        {/* Timeline Items */}
-                                        <div className="space-y-8 relative">
-                                            {(Object.keys(sectionConfig) as Array<keyof typeof sectionConfig>).map((key, index) => {
-                                                const config = sectionConfig[key];
-                                                const content = sections[key];
-                                                if (!content) return null;
-
-                                                const isLeft = index % 2 === 0;
-
-                                                return (
-                                                    <div key={key} className={`flex items-center ${isLeft ? 'flex-row' : 'flex-row-reverse'}`}>
-                                                        {/* Content */}
-                                                        <div className={`w-5/12 ${isLeft ? 'pr-8 text-right' : 'pl-8 text-left'}`}>
-                                                            <div
-                                                                className="p-4 rounded-xl shadow-md"
-                                                                style={{ background: config.bg, borderLeft: isLeft ? 'none' : `4px solid ${config.color}`, borderRight: isLeft ? `4px solid ${config.color}` : 'none' }}
-                                                            >
-                                                                <h4 className="font-bold text-gray-800 mb-2 flex items-center gap-2" style={{ justifyContent: isLeft ? 'flex-end' : 'flex-start' }}>
-                                                                    <span className="text-xl">{config.icon}</span>
-                                                                    {config.title}
-                                                                </h4>
-                                                                <p className="text-sm text-gray-700 italic">
-                                                                    "{extractKeyPhrases(content, 1)[0] || generateReflection(key, content)}"
-                                                                </p>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Center Icon */}
-                                                        <div className="w-2/12 flex justify-center">
-                                                            <div
-                                                                className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg z-10"
-                                                                style={{ background: config.color }}
-                                                            >
-                                                                {index + 1}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Empty space */}
-                                                        <div className="w-5/12"></div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Action Words Timeline Footer */}
-                                    <div className="mt-10 p-6 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl">
-                                        <h3 className="font-bold text-purple-800 text-center mb-4">🎯 PALABRAS DE ACCIÓN A TRAVÉS DEL MENSAJE</h3>
-                                        <div className="flex flex-wrap justify-center gap-2">
-                                            {extractedInfo.actionWords.map((word, i) => renderActionWord(word, i, "text-base px-4 py-2"))}
-                                        </div>
-                                    </div>
-
-                                    {/* Key Verses Strip */}
-                                    {extractedInfo.keyVerses.length > 0 && (
-                                        <div className="mt-6 p-4 bg-blue-50 rounded-xl border-l-4 border-blue-500">
-                                            <h4 className="font-bold text-blue-800 mb-2">📖 Versículos en Orden</h4>
-                                            <div className="flex flex-wrap gap-3">
-                                                {extractedInfo.keyVerses.map((verse, i) => (
-                                                    <span key={i} className="px-3 py-1 bg-blue-600 text-white rounded-full text-sm">
-                                                        {i + 1}. {verse}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Impact Summary */}
-                                    <div className="mt-6 p-4 bg-amber-50 rounded-xl border-l-4 border-amber-500">
-                                        <h4 className="font-bold text-amber-800 mb-2">💡 Idea Central</h4>
-                                        <p className="text-lg text-amber-700 font-semibold">"{idea}"</p>
-                                    </div>
-                                </div>
-                            )
-                        }
 
                         {/* Export Section */}
                         <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t-2 border-gray-300">
