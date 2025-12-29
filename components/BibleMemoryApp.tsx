@@ -117,13 +117,36 @@ const VERSES_DATABASE: VerseDatabase = {
         { ref: "Santiago 1:22", text: "Pero sed hacedores de la palabra, y no tan solamente oidores, engañándoos a vosotros mismos", book: "NT", theme: "mision", difficulty: "intermedio" },
         { ref: "Juan 14:15", text: "Si me amáis, guardad mis mandamientos", book: "NT", theme: "mision", difficulty: "principiante" },
 
-        // OTROS
-        { ref: "Génesis 1:1", text: "En el principio creó Dios los cielos y la tierra", book: "AT", theme: "escritura", difficulty: "principiante" },
-        { ref: "Salmos 119:105", text: "Lámpara es a mis pies tu palabra, y lumbrera a mi camino", book: "AT", theme: "guia", difficulty: "principiante" },
+        // TESTIMONIO (Expanded)
         { ref: "Mateo 5:16", text: "Así alumbre vuestra luz delante de los hombres, para que vean vuestras buenas obras, y glorifiquen a vuestro Padre que está en los cielos", book: "NT", theme: "testimonio", difficulty: "intermedio" },
-        { ref: "Gálatas 5:22-23", text: "Mas el fruto del Espíritu es amor, gozo, paz, paciencia, benignidad, bondad, fe, mansedumbre, templanza", book: "NT", theme: "fruto", difficulty: "avanzado" },
-        { ref: "Efesios 6:11", text: "Vestíos de toda la armadura de Dios, para que podáis estar firmes contra las asechanzas del diablo", book: "NT", theme: "proteccion", difficulty: "intermedio" },
+        { ref: "1 Pedro 3:15", text: "Sino santificad a Dios el Señor en vuestros corazones, y estad siempre preparados para presentar defensa con mansedumbre y reverencia", book: "NT", theme: "testimonio", difficulty: "avanzado" },
+        { ref: "Hechos 22:15", text: "Porque serás testigo suyo a todos los hombres, de lo que has visto y oído", book: "NT", theme: "testimonio", difficulty: "intermedio" },
+        { ref: "Marcos 16:15", text: "Id por todo el mundo y predicad el evangelio a toda criatura", book: "NT", theme: "testimonio", difficulty: "principiante" },
+        { ref: "2 Timoteo 1:8", text: "Por tanto, no te avergüences de dar testimonio de nuestro Señor", book: "NT", theme: "testimonio", difficulty: "principiante" },
+
+        // FE, AMOR, ESPERANZA (Adding variety)
+        { ref: "1 Corintios 16:14", text: "Todas vuestras cosas sean hechas con amor", book: "NT", theme: "amor", difficulty: "principiante" },
+        { ref: "Colosenses 3:14", text: "Y sobre todas estas cosas vestíos de amor, que es el vínculo perfecto", book: "NT", theme: "amor", difficulty: "intermedio" },
+        { ref: "1 Pedro 4:8", text: "Y ante todo, tened entre vosotros ferviente amor; porque el amor cubrirá multitud de pecados", book: "NT", theme: "amor", difficulty: "intermedio" },
+        { ref: "Salmos 119:114", text: "Mi escondedero y mi escudo eres tú; En tu palabra he esperado", book: "AT", theme: "esperanza", difficulty: "intermedio" },
+        { ref: "Romanos 5:5", text: "Y la esperanza no avergüenza; porque el amor de Dios ha sido derramado en nuestros corazones", book: "NT", theme: "esperanza", difficulty: "avanzado" },
+        { ref: "Gálatas 2:20", text: "Lo que ahora vivo en la carne, lo vivo en la fe del Hijo de Dios, el cual me amó y se entregó a sí mismo por mí", book: "NT", theme: "fe", difficulty: "avanzado" },
+
+        // ESCRITURA (Expanded)
+        { ref: "2 Timoteo 3:16", text: "Toda la Escritura es inspirada por Dios, y útil para enseñar, para redargüir, para corregir, para instruir en justicia", book: "NT", theme: "escritura", difficulty: "avanzado" },
+        { ref: "Hebreos 4:12", text: "Porque la palabra de Dios es viva y eficaz, y más cortante que toda espada de dos filos", book: "NT", theme: "escritura", difficulty: "intermedio" },
+        { ref: "Josué 1:8", text: "Nunca se apartará de tu boca este libro de la ley, sino que de día y de noche meditarás en él", book: "AT", theme: "escritura", difficulty: "avanzado" },
+        { ref: "Génesis 1:1", text: "En el principio creó Dios los cielos y la tierra", book: "AT", theme: "escritura", difficulty: "principiante" },
+        { ref: "Salmos 48:14", text: "Porque este Dios es Dios nuestro eternamente y para siempre; Él nos guiará aún más allá de la muerte", book: "AT", theme: "guia", difficulty: "intermedio" },
+        { ref: "Isaías 30:21", text: "Entonces tus oídos oirán a tus espaldas palabra que diga: Este es el camino, andad por él; y no echéis a la mano derecha, ni tampoco a la mano izquierda", book: "AT", theme: "guia", difficulty: "avanzado" },
+        { ref: "Juan 16:13", text: "Pero cuando venga el Espíritu de verdad, él os guiará a toda la verdad", book: "NT", theme: "guia", difficulty: "intermedio" },
+
+        // MISSING STUDY PLAN VERSES
+        { ref: "Jeremías 33:3", text: "Clama a mí, y yo te responderé, y te enseñaré cosas grandes y ocultas que tú no conoces", book: "AT", theme: "fe", difficulty: "intermedio" },
+        { ref: "2 Corintios 5:17", text: "De modo que si alguno está en Cristo, nueva criatura es; las cosas viejas pasaron; he aquí todas son hechas nuevas", book: "NT", theme: "transformacion", difficulty: "intermedio" },
         { ref: "Romanos 12:2", text: "No os conforméis a este siglo, sino transformaos por medio de la renovación de vuestro entendimiento", book: "NT", theme: "transformacion", difficulty: "intermedio" },
+        { ref: "Ezequiel 36:26", text: "Os daré corazón nuevo, y pondré espíritu nuevo dentro de vosotros; y quitaré de vuestra carne el corazón de piedra, y os daré un corazón de carne", book: "AT", theme: "transformacion", difficulty: "avanzado" },
+        { ref: "Filipenses 1:6", text: "Estando persuadido de esto, que el que comenzó en vosotros la buena obra, la perfeccionará hasta el día de Jesucristo", book: "NT", theme: "transformacion", difficulty: "intermedio" },
     ]
 };
 
@@ -634,7 +657,7 @@ const ThemeSelector = ({ onSelectTheme }: { onSelectTheme: (theme: string) => vo
     );
 };
 
-const StudyPlanView = ({ plan }: { plan: StudyPlan }) => {
+const StudyPlanView = ({ plan, onStartDay }: { plan: StudyPlan, onStartDay: (ref: string) => void }) => {
     return (
         <div className="space-y-6 pb-20 animate-fade-in">
             <div className="bg-indigo-900 text-white p-8 rounded-3xl shadow-xl">
@@ -651,7 +674,14 @@ const StudyPlanView = ({ plan }: { plan: StudyPlan }) => {
                             <h4 className="font-bold text-slate-800">{day.title}</h4>
                             <p className="text-sm text-slate-500">{day.verseRef}</p>
                         </div>
-                        {!day.completed && <button className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold hover:bg-indigo-100">Iniciar</button>}
+                        {!day.completed && (
+                            <button
+                                onClick={() => onStartDay(day.verseRef)}
+                                className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-bold hover:bg-indigo-100 transition-colors"
+                            >
+                                Iniciar
+                            </button>
+                        )}
                     </div>
                 ))}
             </div>
@@ -696,10 +726,33 @@ export const BibleMemoryApp: React.FC = () => {
 
     const startMode = (modeId: string) => {
         const verses = getFilteredVerses();
-        setCurrentMode(modeId);
-        setCurrentScreen('practice');
-        setVerseIndex(0);
-        setCurrentVerse(verses[0]);
+        if (verses.length > 0) {
+            setCurrentMode(modeId);
+            setCurrentScreen('practice');
+            setVerseIndex(0);
+            setCurrentVerse(verses[0]);
+        }
+    };
+
+    const handleStartDay = (ref: string) => {
+        // Find verse in DB
+        const verse = VERSES_DATABASE.popular.find(v => v.ref === ref);
+        if (verse) {
+            // Override filters to show this specific verse
+            setCurrentVerse(verse);
+            // We set a temporary "Plan" context implicitly by just starting practice
+            // Ideally we'd filter by this verse only, but for now we just load it
+            // Reset filters so it doesn't get hidden
+            setSelectedTheme(null);
+            setSelectedLevel(null);
+
+            setCurrentMode('fillblanks'); // Default mode for daily plan
+            setCurrentScreen('practice');
+            setVerseIndex(0); // It's a single verse context mostly
+        } else {
+            console.error("Verse not found for plan:", ref);
+            alert("Versículo no encontrado en la base de datos.");
+        }
     };
 
     const handleComplete = (correct: boolean, attempts: number) => {
@@ -775,7 +828,7 @@ export const BibleMemoryApp: React.FC = () => {
                             </div>
                         )}
 
-                        {currentScreen === 'plan' && <StudyPlanView plan={STUDY_PLANS[0]} />}
+                        {currentScreen === 'plan' && <StudyPlanView plan={STUDY_PLANS[0]} onStartDay={handleStartDay} />}
                         {currentScreen === 'themes' && <ThemeSelector onSelectTheme={(v: string) => { setSelectedTheme(v); startMode('fillblanks'); }} />}
 
                         {currentScreen === 'practice' && currentVerse && (
