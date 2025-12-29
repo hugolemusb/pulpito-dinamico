@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, FastForward, Rewind, Settings, Type, X, ArrowLeft, FlipHorizontal, RefreshCcw, Minus, Plus, Maximize2, Minimize2, Clock, List, AlignJustify, Hash } from 'lucide-react';
+import { Play, Pause, FastForward, Rewind, Settings, Type, X, ArrowLeft, FlipHorizontal, RefreshCcw, Minus, Plus, Maximize2, Minimize2, Clock, List, AlignJustify, Hash, Book } from 'lucide-react';
 import { Sermon, SectionType } from '../types';
 import { Button } from './Button';
 
@@ -39,7 +39,7 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    // Always try to load sermon
+    // 1. Load Sermon
     const savedSermon = localStorage.getItem('current_sermon');
     if (savedSermon) {
       try {
@@ -47,51 +47,32 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
       } catch { setSermon(null); }
     }
 
-    // Load study/dictionary from the actual session where BibleSearch saves data
-    const savedSession = localStorage.getItem('last_study_session');
-    if (savedSession) {
+    // 2. Load SPECIFIC Teleprompter Content (Study)
+    const savedStudy = localStorage.getItem('teleprompter_study_content');
+    if (savedStudy) {
       try {
-        const { savedQuery, savedResult, savedDictResult } = JSON.parse(savedSession);
-
-        // Format study content (Tema)
-        if (savedResult) {
-          let html = `<h2>Estudio: ${savedQuery || 'Búsqueda'}</h2>`;
-          html += `<h3>Fundamento Bíblico</h3>`;
-          if (savedResult.verses) {
-            savedResult.verses.forEach((v: any) => {
-              html += `<p><strong>${v.ref}</strong> (${v.version})<br/><em>"${v.text}"</em></p>`;
-            });
-          }
-          if (savedResult.insight) {
-            html += `<hr/><h3>${savedResult.insight.title}</h3>`;
-            html += `<p>${savedResult.insight.content}</p>`;
-          }
-          setStudyContent({ title: `Estudio: ${savedQuery || 'Búsqueda'}`, content: html });
-        }
-
-        // Format dictionary content
-        if (savedDictResult) {
-          let html = `<h2>${savedDictResult.originalWord}</h2>`;
-          html += `<p><strong>Idioma:</strong> ${savedDictResult.language} | <strong>Fonética:</strong> /${savedDictResult.phonetic}/</p>`;
-          html += `<h3>Definición</h3><p>${savedDictResult.definition}</p>`;
-          html += `<h3>Significado Teológico</h3><p>${savedDictResult.theologicalSignificance}</p>`;
-          if (savedDictResult.biblicalReferences) {
-            html += `<h3>Referencias</h3><ul>${savedDictResult.biblicalReferences.map((r: string) => `<li>${r}</li>`).join('')}</ul>`;
-          }
-          setDictContent({ title: `Diccionario: ${savedDictResult.term}`, content: html });
-        }
-      } catch (e) {
-        console.error('Error loading study session:', e);
-      }
+        setStudyContent(JSON.parse(savedStudy));
+      } catch { setStudyContent(null); }
+    } else {
+      setStudyContent(null); // Explicit clear if missing
     }
 
-    // Also check for custom content passed as prop
-    if (customContent) {
-      if (contentType === 'study') {
-        setStudyContent(customContent);
-      } else if (contentType === 'dictionary') {
-        setDictContent(customContent);
-      }
+    // 3. Load SPECIFIC Teleprompter Content (Dictionary)
+    const savedDict = localStorage.getItem('teleprompter_dictionary_content');
+    if (savedDict) {
+      try {
+        setDictContent(JSON.parse(savedDict));
+      } catch { setDictContent(null); }
+    } else {
+      setDictContent(null); // Explicit clear if missing
+    }
+
+    // 4. Set Initial Type based on Intent
+    const intendedType = localStorage.getItem('teleprompter_content_type') as TeleprompterContentType;
+    if (intendedType && ['sermon', 'study', 'dictionary'].includes(intendedType)) {
+      setActiveContentType(intendedType);
+    } else if (contentType) {
+      setActiveContentType(contentType);
     }
 
     // Keyboard shortcuts
@@ -118,6 +99,8 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [contentType, customContent, onBack]);
+
+  // --- CALCULATIONS & LOGIC ---
 
   // --- CALCULATIONS & LOGIC ---
 
@@ -274,6 +257,15 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
     }
   };
 
+  // --- EFFECT: CLEAR REFS & STATE ON CONTENT CHANGE ---
+  useEffect(() => {
+    // Prevent ghost text/refs when switching content
+    sectionRefs.current = [];
+    setElapsedTime(0);
+    // Recalculate metrics immediately to reset potential ghost scroll/active index
+    updateMetrics();
+  }, [sermon, studyContent, dictContent, activeContentType]);
+
   // --- CHECK CONTENT ---
   const hasContent = activeContentType === 'sermon'
     ? sermon !== null
@@ -282,17 +274,72 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
       : dictContent !== null;
 
   if (!hasContent) {
+    const handleEmptyBack = () => {
+      // If we are in Study/Dict and it's empty, "Back" means go to Main Pulpit
+      if (activeContentType !== 'sermon') {
+        setActiveContentType('sermon');
+      } else {
+        // If Pulpit is empty too, then exit
+        onBack();
+      }
+    };
+
     return (
-      <div className="flex flex-col items-center justify-center h-full text-white bg-black gap-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white" />
-        <p className="text-gray-400">
-          {activeContentType === 'sermon' ? 'Cargando sermón...' :
-            activeContentType === 'study' ? 'Cargando estudio bíblico...' :
-              'Cargando contenido...'}
-        </p>
-        <button onClick={onBack} className="mt-4 px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
-          Volver
-        </button>
+      <div className="flex flex-col items-center justify-center h-full bg-[var(--bg-primary)] text-[var(--text-primary)] gap-8 p-8 text-center animate-fade-in relative z-[200]">
+
+        {/* Content Type Selector (Empty State Version) */}
+        <div className="flex gap-6 mb-4">
+          <button
+            onClick={() => setActiveContentType('sermon')}
+            className={`flex flex-col items-center gap-2 group transition-all duration-300 ${activeContentType === 'sermon' ? 'scale-110 opacity-100' : 'opacity-50 hover:opacity-80 hover:scale-105'}`}
+          >
+            <div className={`p-4 rounded-full shadow-lg border border-transparent ${activeContentType === 'sermon' ? 'bg-blue-600 shadow-blue-500/30 text-white' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)]'}`}>
+              <Settings className="w-8 h-8" />
+            </div>
+            <span className={`text-xs font-bold uppercase tracking-wider ${activeContentType === 'sermon' ? 'text-blue-600 dark:text-blue-400' : 'text-[var(--text-secondary)]'}`}>Púlpito</span>
+          </button>
+
+          <button
+            onClick={() => setActiveContentType('study')}
+            className={`flex flex-col items-center gap-2 group transition-all duration-300 ${activeContentType === 'study' ? 'scale-110 opacity-100' : 'opacity-50 hover:opacity-80 hover:scale-105'}`}
+          >
+            <div className={`p-4 rounded-full shadow-lg border border-transparent ${activeContentType === 'study' ? 'bg-green-600 shadow-green-500/30 text-white' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)]'}`}>
+              <Book className="w-8 h-8" />
+            </div>
+            <span className={`text-xs font-bold uppercase tracking-wider ${activeContentType === 'study' ? 'text-green-600 dark:text-green-400' : 'text-[var(--text-secondary)]'}`}>Estudio</span>
+          </button>
+
+          <button
+            onClick={() => setActiveContentType('dictionary')}
+            className={`flex flex-col items-center gap-2 group transition-all duration-300 ${activeContentType === 'dictionary' ? 'scale-110 opacity-100' : 'opacity-50 hover:opacity-80 hover:scale-105'}`}
+          >
+            <div className={`p-4 rounded-full shadow-lg border border-transparent ${activeContentType === 'dictionary' ? 'bg-purple-600 shadow-purple-500/30 text-white' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)]'}`}>
+              <List className="w-8 h-8" />
+            </div>
+            <span className={`text-xs font-bold uppercase tracking-wider ${activeContentType === 'dictionary' ? 'text-purple-600 dark:text-purple-400' : 'text-[var(--text-secondary)]'}`}>Diccionario</span>
+          </button>
+        </div>
+
+        <div className="space-y-4 animate-slide-up max-w-lg">
+          <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)]">
+            {activeContentType === 'sermon' ? 'Púlpito Vacío' :
+              activeContentType === 'study' ? 'Sin Estudio Activo' :
+                'Diccionario sin Datos'}
+          </h2>
+
+          <p className="text-[var(--text-secondary)] text-lg leading-relaxed">
+            {activeContentType === 'sermon'
+              ? 'No hay ningún sermón cargado actualmente. Ve al Editor y guarda tu mensaje.'
+              : 'Realiza una búsqueda y selecciona "Abrir en Teleprompter".'}
+          </p>
+        </div>
+
+        <div className="flex gap-4 mt-8">
+          <button onClick={handleEmptyBack} className="px-8 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 flex items-center gap-3">
+            <ArrowLeft className="w-5 h-5 text-white" />
+            {activeContentType !== 'sermon' ? 'Volver al Púlpito' : 'Salir'}
+          </button>
+        </div>
       </div>
     );
   }

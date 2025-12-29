@@ -611,7 +611,27 @@ export const getCrossReferences = async (verse: string, bypassCache: boolean = f
 export const searchSemanticInsights = async (query: string): Promise<SearchResult | null> => {
   const cached = getFromCache(CACHE_KEYS.SEARCH, query);
   if (cached) return cached;
-  const prompt = `Analiza consulta: "${query}". JSON: { "verses": [{"ref":"", "version":"", "text":"", "tags":[]}], "insight": {"title":"", "psychologicalConcept":"", "content":""} }.`;
+  const prompt = `Analiza consulta: "${query}". 
+  Genera un estudio bíblico profundo.
+  JSON response format:
+  { 
+    "verses": [{"ref":"", "version":"", "text":"", "tags":[]}], 
+    "insight": {
+      "title": "Título atractivo", 
+      "psychologicalConcept": "Concepto psicológico/espiritual clave", 
+      "content": "Explicación profunda en 2 párrafos",
+      "practicalApplication": ["Pregunta reflexión 1", "Pregunta reflexión 2", "Pregunta reflexión 3"],
+      "illustration": {
+        "content": "Texto de una ilustración, cita célebre o bosquejo breve relacionado",
+        "source": "Autor, Libro o Fuente (ej: C.S. Lewis, Spurgeon, 'Mero Cristianismo')",
+        "type": "quote" 
+      }
+    } 
+  }.
+  REGLAS:
+  - "practicalApplication": Deben ser 3 preguntas desafiantes para el creyente de hoy, no genéricas.
+  - "illustration": Debe ser de un autor reconocido (teólogo, filósofo) o una anécdota histórica/fábula clásica.
+  `;
   try {
     const text = await generateUnifiedContent(prompt, undefined, true);
     if (text) {

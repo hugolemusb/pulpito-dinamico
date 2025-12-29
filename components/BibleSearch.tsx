@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Book, Brain, FileText, FileType, Presentation, Printer, GraduationCap, BookOpen, X, FileInput, MonitorPlay } from 'lucide-react';
+import { Search, Loader2, Book, Brain, FileText, FileType, Presentation, Printer, GraduationCap, BookOpen, X, FileInput, MonitorPlay, Quote, MessageSquareQuote } from 'lucide-react';
 import { Button } from './Button';
 import { searchSemanticInsights, lookupDictionaryTerm } from '../services/geminiService';
 import { fetchVerseText } from '../services/bibleService';
 import { SearchResult, DictionaryResult, TextSettings, Sermon, SectionType } from '../types';
 import { useTranslation } from '../context/LanguageContext';
+import { usePersistence } from '../context/PersistenceContext';
 
 interface BibleSearchProps {
   textSettings?: TextSettings;
@@ -14,66 +15,24 @@ interface BibleSearchProps {
 
 export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNavigate }) => {
   const { t, language } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'search' | 'dictionary'>('search');
-  const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<SearchResult | null>(null);
-  const [dictResult, setDictResult] = useState<DictionaryResult | null>(null);
-  const [selectedDictVerse, setSelectedDictVerse] = useState<{ ref: string, text: string } | null>(null);
-  const [isLoadingDictVerse, setIsLoadingDictVerse] = useState(false);
+  const { bibleSearchState, setBibleSearchState, performBibleSearch } = usePersistence();
+
+  // Destructure for easier access in render
+  const { query, activeTab, result, dictResult, isLoading, selectedDictVerse, isLoadingDictVerse } = bibleSearchState;
+
   const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    const savedSession = localStorage.getItem('last_study_session');
-    if (savedSession) {
-      try {
-        const { savedQuery, savedResult, savedTab, savedDictResult } = JSON.parse(savedSession);
-        if (savedQuery) setQuery(savedQuery);
-        if (savedResult) setResult(savedResult);
-        if (savedTab) setActiveTab(savedTab);
-        if (savedDictResult) setDictResult(savedDictResult);
-      } catch (e) {
-        console.error("Error loading study session", e);
-      }
-    }
-  }, []);
+  // Local helper to update query in context
+  const setQuery = (q: string) => setBibleSearchState(prev => ({ ...prev, query: q }));
+  const setActiveTab = (tab: 'search' | 'dictionary') => setBibleSearchState(prev => ({ ...prev, activeTab: tab }));
+  const setSelectedDictVerse = (v: { ref: string, text: string } | null) => setBibleSearchState(prev => ({ ...prev, selectedDictVerse: v }));
+  const setIsLoadingDictVerse = (loading: boolean) => setBibleSearchState(prev => ({ ...prev, isLoadingDictVerse: loading }));
 
-  useEffect(() => {
-    localStorage.setItem('last_study_session', JSON.stringify({
-      savedQuery: query,
-      savedResult: result,
-      savedTab: activeTab,
-      savedDictResult: dictResult
-    }));
-  }, [query, result, activeTab, dictResult]);
+  // Note: We removed the localStorage effects because PersistenceProvider handles hydration/saving globally now.
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-
-    setIsLoading(true);
-
-    // Solo reseteamos el resultado de la pestaña ACTIVA para no perder la info de la otra
-    if (activeTab === 'search') {
-      setResult(null);
-    } else {
-      setDictResult(null);
-      setSelectedDictVerse(null);
-    }
-
-    try {
-      if (activeTab === 'search') {
-        const data = await searchSemanticInsights(query);
-        setResult(data);
-      } else {
-        const data = await lookupDictionaryTerm(query);
-        setDictResult(data);
-      }
-    } catch (error: any) {
-      alert(error.message || "Error en búsqueda");
-    } finally {
-      setIsLoading(false);
-    }
+    performBibleSearch(query, activeTab);
   };
 
   const handleDictRefClick = async (ref: string) => {
@@ -376,7 +335,46 @@ export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNaviga
                     >
                       <p>{result.insight.content}</p>
                     </div>
-                    <div className="mt-6 p-5 bg-white rounded-lg border border-red-200 shadow-sm"><h5 className="text-sm font-bold text-red-800 mb-2 uppercase tracking-wide border-b border-red-100 pb-1">Aplicación Práctica</h5><p className="text-base text-red-700 font-medium leading-relaxed">Reflexiona: ¿Cómo cambia tu perspectiva al ver este problema no solo como una falla espiritual, sino como un proceso mental que Dios quiere redimir?</p></div>
+                    {/* Dynamic Practical Application */}
+                    <div className="mt-6 p-5 bg-white rounded-lg border border-red-200 shadow-sm">
+                      <h5 className="text-sm font-bold text-red-800 mb-3 uppercase tracking-wide border-b border-red-100 pb-1">Aplicación Práctica</h5>
+                      {result.insight.practicalApplication && result.insight.practicalApplication.length > 0 ? (
+                        <ul className="space-y-3">
+                          {result.insight.practicalApplication.map((q, i) => (
+                            <li key={i} className="text-base text-red-700 font-medium leading-relaxed flex gap-2">
+                              <span>•</span>
+                              <span>{q}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-base text-red-700 font-medium leading-relaxed">
+                          Reflexiona: ¿Cómo cambia tu perspectiva al ver este problema no solo como una falla espiritual, sino como un proceso mental que Dios quiere redimir?
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Illustration / Quote Section */}
+                    {result.insight.illustration && (
+                      <div className="mt-6 p-5 bg-slate-50 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                          <Quote size={64} className="text-slate-800" />
+                        </div>
+                        <h5 className="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wide border-b border-slate-200 pb-1 flex items-center gap-2">
+                          <MessageSquareQuote className="w-4 h-4" />
+                          {result.insight.illustration.type === 'quote' ? 'Cita Célebre' : 'Ilustración / Bosquejo'}
+                        </h5>
+                        <blockquote className="relative z-10">
+                          <p className="text-lg font-serif text-slate-700 italic leading-relaxed mb-4">
+                            "{result.insight.illustration.content}"
+                          </p>
+                          <footer className="text-sm font-bold text-slate-600 flex items-center justify-end gap-2">
+                            <span className="w-8 h-[1px] bg-slate-400 block"></span>
+                            {result.insight.illustration.source}
+                          </footer>
+                        </blockquote>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

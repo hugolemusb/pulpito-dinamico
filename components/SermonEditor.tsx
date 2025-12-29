@@ -7,14 +7,7 @@ import { chatWithAdvisor, getSectionHelper, getCrossReferences, generateFullSerm
 import { fetchVerseText, getBibleVersions, BIBLE_BOOKS } from '../services/bibleService';
 import { speakText, stopAudio, stripHtmlForAudio, splitTextIntoChunks, isSpeaking } from '../services/audioService';
 import { useTranslation } from '../context/LanguageContext';
-import {
-  Church, Clock, RotateCcw, Play, Pause, PanelRight,
-  ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, Search,
-  Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, FileText, Presentation,
-  Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
-  Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay
-} from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Save, Download, FileText, FileType, MonitorPlay, Mic, Play, Pause, SkipBack, SkipForward, Square, RotateCcw, Plus, Trash2, X, Settings, Image as ImageIcon, Wand2, Sparkles, AlertTriangle, Info, Check, Cloud, Upload, LayoutTemplate, Printer, Share2, Calendar as CalendarIcon, FolderOpen, PanelLeft, PanelRight, Headphones, Circle, Triangle, Star, Church, Loader2, Send, Search, Presentation, BookOpen, MessageCircle, GripVertical, Clock, FilePlus, RefreshCw, Bold, Italic, Underline, List, ListOrdered, HardDrive, ChevronDown } from 'lucide-react';
 
 interface SermonEditorProps {
   theme: Theme;
@@ -27,7 +20,6 @@ interface SermonEditorProps {
   onOpenTeleprompter?: () => void;
 }
 
-const CHRISTIAN_EMOJIS = ["✝️", "🙏", "🕊️", "🔥", "❤️", "📖", "👑", "🌿", "⭐", "☁️", "🩸", "🥖", "🦁", "🐑"];
 const SPEAKER_PREFIXES = ['Sr.', 'Sra.', 'Ps.', 'Psra.', 'Hno.', 'Hna.', 'Guía', 'Líder', 'Diácono', 'Rev.', 'Ob.'];
 
 const IMAGE_FILTERS = {
@@ -38,77 +30,8 @@ const IMAGE_FILTERS = {
   dramatic: { label: 'Dramático', style: 'contrast(130%) brightness(90%)' },
 };
 
-interface DraggableIconProps {
-  emoji: string;
-  id: string;
-  onRemove: (id: string) => void;
-  parentRef: React.RefObject<HTMLDivElement | null>;
-  tooltip: string;
-}
 
-const DraggableIcon: React.FC<DraggableIconProps> = ({
-  emoji,
-  id,
-  onRemove,
-  parentRef,
-  tooltip
-}) => {
-  const [position, setPosition] = useState({ x: 50, y: 50 });
-  const [fontSize, setFontSize] = useState(40); // Default size in px
-  const isDragging = useRef(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    isDragging.current = true;
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    e.stopPropagation();
-    const delta = e.deltaY < 0 ? 2 : -2;
-    setFontSize(prev => Math.min(200, Math.max(10, prev + delta)));
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging.current || !parentRef.current) return;
-      const rect = parentRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      setPosition({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
-    };
-
-    const handleMouseUp = () => {
-      isDragging.current = false;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
-
-  return (
-    <div
-      className="absolute hover:brightness-110 transition-filter select-none z-10 flex items-center justify-center leading-none"
-      style={{
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-        transform: 'translate(-50%, -50%)',
-        fontSize: `${fontSize}px`,
-        cursor: 'grab'
-      }}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={() => onRemove(id)}
-      onWheel={handleWheel}
-      title={`${tooltip} • Rueda mouse: Tamaño`}
-    >
-      {emoji}
-    </div>
-  );
-};
 
 const createFreshSermon = (t: (key: string) => string): Sermon => {
   const timestamp = Date.now();
@@ -146,12 +69,24 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   onOpenTeleprompter
 }) => {
   const { t, language } = useTranslation();
+  console.log("DEBUG: SermonEditor Mounting/Rendering...");
 
   // --- ESTADO PRINCIPAL ---
   const [sermon, setSermon] = useState<Sermon>(() => {
     if (initialSermonData) return initialSermonData;
-    const saved = localStorage.getItem('current_sermon');
-    return saved ? JSON.parse(saved) : createFreshSermon(t);
+    try {
+      const saved = localStorage.getItem('current_sermon');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Validar integridad básica para evitar crash
+        if (parsed && Array.isArray(parsed.sections) && parsed.sections.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error("Error loading saved sermon, resetting:", e);
+    }
+    return createFreshSermon(t);
   });
 
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
@@ -172,9 +107,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [crossRefs, setCrossRefs] = useState<{ ref: string, text: string }[]>([]);
   const [isLoadingRefs, setIsLoadingRefs] = useState(false);
-  const [visualQuery, setVisualQuery] = useState('');
-  const [searchImages, setSearchImages] = useState<string[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string>('');
+
   const [overlayText, setOverlayText] = useState('');
   const [overlayOpacity, setOverlayOpacity] = useState(60);
   const [visualTextSize, setVisualTextSize] = useState(24);
@@ -226,6 +159,8 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
   const sermonRef = useRef(sermon);
   const contentEditableRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [showShapesMenu, setShowShapesMenu] = useState(false);
   const announcementsRef = useRef<HTMLDivElement>(null);
 
   // Safe Active Section Retrieval with fallback
@@ -786,49 +721,12 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     } finally { setIsLoadingRefs(false); }
   };
 
-  const handleVisualSearch = async (overrideQuery?: string) => {
-    const q = overrideQuery || visualQuery;
-    if (!q) return;
-    if (overrideQuery) setVisualQuery(overrideQuery);
-    setIsVisualLoading(true);
-    setSearchImages([]);
-    try {
-      let description = overrideQuery ? overrideQuery : await translateForImageSearch(q);
-      description = description.replace(/[^\w\s,]/gi, '');
-      const styles = [
-        { prompt: "hyperrealistic, cinematic lighting, 8k, dramatic atmosphere", model: "flux" },
-        { prompt: "digital art, 3d render, soft lighting, vibrant colors", model: "turbo" }
-      ];
-      const images = styles.map((s, index) => {
-        const finalPrompt = `${description}, ${s.prompt}`;
-        const encoded = encodeURIComponent(finalPrompt);
-        const seed = Math.floor(Math.random() * 1000000) + index;
-        return `https://image.pollinations.ai/prompt/${encoded}?width=640&height=360&model=${s.model}&nologo=true&seed=${seed}`;
-      });
-      setSearchImages(images);
-    } catch (error: any) { alert(error.message); } finally { setIsVisualLoading(false); }
-  };
+  /* REMOVED: Visual Search Logic */
+  const handleVisualSearch = async (overrideQuery?: string) => { console.log("Feature disabled"); };
 
-  const handleSuggestImages = async () => {
-    setIsVisualLoading(true);
-    const textToAnalyze = activeSection.content || sermon.sections.map(s => s.content).join(' ');
-    if (!textToAnalyze || textToAnalyze.length < 10) { alert(t('editor.visual.suggest')); setIsVisualLoading(false); return; }
-    try {
-      const keywords = await extractVisualKeywords(textToAnalyze);
-      handleVisualSearch(keywords);
-    } catch (error: any) { alert(error.message); setIsVisualLoading(false); }
-  };
+  const handleSuggestImages = async () => { console.log("Feature disabled"); };
 
-  const handleLocalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (typeof event.target?.result === 'string') { setSelectedImage(event.target.result); }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const handleLocalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => { console.log("Feature disabled"); };
 
   const handlePasteVerse = () => {
     if (sermon.mainVerseText) {
@@ -1133,6 +1031,12 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       contentHtml += `<hr/><h3>Notas Exegéticas</h3><p>${sermon.bibleNotes}</p>`;
     }
 
+    // Include Global Notes
+    const globalNotes = localStorage.getItem('pulpito_global_notes');
+    if (globalNotes) {
+      contentHtml += `<hr/><h3>📝 Notas y Apuntes Adicionales</h3><div style="white-space: pre-wrap; font-family: monospace; background: #eee; padding: 10px;">${globalNotes}</div>`;
+    }
+
     const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${sermon.title}</title><style>body { font-family: 'Times New Roman', serif; color: #000000; } h1 { font-size: 24pt; font-weight: bold; } h2 { font-size: 18pt; color: #444; } h3 { font-size: 14pt; font-weight: bold; margin-top: 20px; color: #2563EB; } p { font-size: 12pt; line-height: 1.5; }</style></head><body>`;
     const footer = "</body></html>";
     const sourceHTML = header + contentHtml + footer;
@@ -1185,6 +1089,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
         sectionSlide.addText(textContent, { x: 0.5, y: 1.2, w: '90%', h: 4.5, fontSize: 18, color: '333333', valign: 'top' });
       });
 
+      // Global Notes Slide
+      const globalNotes = localStorage.getItem('pulpito_global_notes');
+      if (globalNotes) {
+        let noteSlide = pres.addSlide();
+        noteSlide.addText("Notas y Apuntes", { x: 0.5, y: 0.3, fontSize: 28, bold: true, color: 'EA580C' });
+        noteSlide.addText(globalNotes, { x: 0.5, y: 1.2, w: '90%', h: 4.5, fontSize: 16, color: '333333', fontFace: 'Courier New', valign: 'top' });
+      }
+
       await pres.writeFile({ fileName: `Sermon_${sermon.title.replace(/\s+/g, '_')}.pptx` });
     } catch (error) {
       console.error(error);
@@ -1236,9 +1148,67 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       setCrossRefs([]);
     }
   };
+  // --- IMAGE HANDLING ---
+  const insertImage = (base64: string) => {
+    const img = document.createElement('img');
+    img.src = base64;
+    img.style.maxWidth = '100%';
+    img.style.borderRadius = '8px';
+    img.style.marginTop = '10px';
+    img.style.marginBottom = '10px';
+    img.style.cursor = 'pointer'; // Hint interactivity
 
+    // Try to insert at cursor
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0 && contentEditableRef.current?.contains(selection.anchorNode)) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(img);
+      range.collapse(false);
+    } else {
+      // Fallback: append
+      contentEditableRef.current?.appendChild(img);
+    }
+
+    // Trigger input event to save
+    if (contentEditableRef.current) {
+      const event = new Event('input', { bubbles: true });
+      contentEditableRef.current.dispatchEvent(event);
+    }
+  };
+
+
+
+
+
+
+
+  useEffect(() => {
+    if (timerState.isRunning) {
+      document.body.classList.add('pulpito-focus-mode');
+    } else {
+      document.body.classList.remove('pulpito-focus-mode');
+    }
+    // Cleanup on unmount or when timer stops
+    return () => document.body.classList.remove('pulpito-focus-mode');
+  }, [timerState.isRunning]);
+
+  // Double assurance: Cleanup on component unmount regardless of timer dependency, just in case
+  useEffect(() => {
+    return () => document.body.classList.remove('pulpito-focus-mode');
+  }, []);
+
+  console.log("DEBUG: SermonEditor Returning JSX");
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      <style>{`
+        body.pulpito-focus-mode #main-sidebar {
+          filter: blur(5px);
+          opacity: 0.3;
+          pointer-events: none;
+          transition: all 0.5s ease;
+        }
+      `}</style>
       <div id="sermon-print-area" className="hidden print-only">
         <h1>{sermon.title}</h1>
         <table>
@@ -1269,12 +1239,27 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           );
         })}
         {sermon.bibleNotes && <div><h3>NOTAS</h3><p>{sermon.bibleNotes}</p></div>}
+        {localStorage.getItem('pulpito_global_notes') && (
+          <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-300">
+            <h3>📝 Notas y Apuntes</h3>
+            <pre className="whitespace-pre-wrap font-mono text-sm bg-gray-50 p-4">{localStorage.getItem('pulpito_global_notes')}</pre>
+          </div>
+        )}
         {sermon.announcements && <div><h3>AVISOS</h3><div dangerouslySetInnerHTML={{ __html: sermon.announcements || '' }} /></div>}
       </div>
 
       <div className="no-print h-full flex flex-col overflow-hidden">
         <header className="h-[72px] bg-[var(--bg-secondary)] border-b border-[var(--border-color)] flex items-center justify-between px-4 shrink-0 z-20">
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 transition-all duration-500 ${timerState.isRunning ? 'opacity-20 blur-[2px] pointer-events-none' : ''}`}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
+              title={leftSidebarOpen ? "Ocultar Estructura" : "Mostrar Estructura"}
+              className="hidden md:flex"
+            >
+              <PanelLeft className={`w-6 h-6 ${leftSidebarOpen ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`} />
+            </Button>
             <div className="bg-blue-600 p-2 rounded-lg text-white">
               <Church className="w-6 h-6" />
             </div>
@@ -1298,7 +1283,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 transition-all duration-500 ${timerState.isRunning ? 'opacity-20 blur-[2px] pointer-events-none' : ''}`}>
             {lastSaved && (
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--bg-tertiary)] border border-[var(--border-color)] mr-2 animate-fade-in" title={`${t('editor.autosave')}: ${lastSaved.toLocaleTimeString()}`}>
                 <Cloud className="w-3 h-3 text-[var(--accent-color)]" />
@@ -1315,6 +1300,10 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
             <Button variant="ghost" size="icon" onClick={handleSaveToLibrary} title="Guardar en Biblioteca" className="hidden sm:inline-flex"><Save className="w-5 h-5 text-blue-600" /></Button>
             <Button variant="ghost" size="icon" onClick={handleSaveToCalendar} title="Guardar en Calendario" className="hidden sm:inline-flex"><CalendarIcon className="w-5 h-5 text-green-600" /></Button>
             <Button variant="ghost" size="icon" onClick={handleShowStorageDialog} title="Guardar como Archivo" className="hidden sm:inline-flex"><Cloud className="w-5 h-5 text-purple-600" /></Button>
+
+
+
+
 
             <div className="sm:hidden">
               <Button variant="ghost" size="icon" onClick={() => setShowConfigModal(true)}><Settings className="w-6 h-6" /></Button>
@@ -1333,7 +1322,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               <Button variant="outline" size="icon" onClick={downloadPPT} title={t('export.ppt')} loading={isExporting}><Presentation className="w-4 h-4" /></Button>
               <Button variant="primary" size="sm" onClick={handlePrint} title={t('export.print')}><Printer className="w-4 h-4 mr-2" /> {t('editor.print')}</Button>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setRightSidebarOpen(!rightSidebarOpen)}><PanelRight className="w-6 h-6" /></Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+              title={rightSidebarOpen ? "Ocultar Herramientas" : "Mostrar Herramientas"}
+            >
+              <PanelRight className={`w-6 h-6 ${rightSidebarOpen ? 'text-[var(--accent-color)]' : 'text-[var(--text-secondary)]'}`} />
+            </Button>
           </div>
         </header>
 
@@ -1502,6 +1498,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                     contentEditable
                     suppressContentEditableWarning
                     onInput={handleContentChange}
+
                     onMouseUp={handleTextSelection}
                     className="w-full h-full min-h-[600px] outline-none font-reading leading-loose text-[var(--text-primary)] empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--text-secondary)] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 text-justify [&_p]:mb-4"
                     data-placeholder={t('editor.placeholder')}
@@ -1561,7 +1558,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               </div>
             </div>
             <div className="h-14 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between px-6 shrink-0">
-              <Button variant="ghost" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
+              <Button variant={activeSection?.type === SectionType.LECTURA ? 'ghost' : 'primary'} onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
               <span className="text-sm font-medium text-[var(--text-secondary)]">{sermon.sections.findIndex(s => s.id === activeSectionId) + 1} de {sermon.sections.length}</span>
               <Button variant="primary" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1}>{t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" /></Button>
             </div>
@@ -1687,114 +1684,55 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
                 {/* VISUAL TAB */}
                 {rightTab === 'visual' && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 h-full overflow-y-auto">
                     <div className="p-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white shadow-lg text-center">
                       <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-80" />
                       <h3 className="font-bold text-sm">Estudio Creativo</h3>
-                      <p className="text-xs opacity-80 mt-1">Genera visuales para tu sermón</p>
+                      <p className="text-xs opacity-80 mt-1">Herramientas visuales deshabilitadas por configuración.</p>
                     </div>
-
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={visualQuery}
-                          onChange={(e) => setVisualQuery(e.target.value)}
-                          placeholder={t('editor.visual.search')}
-                          className="flex-1 p-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
-                        />
-                        <Button size="icon" onClick={() => handleVisualSearch()} disabled={isVisualLoading}><Search className="w-4 h-4" /></Button>
-                      </div>
-                      <Button variant="secondary" size="sm" className="w-full text-xs" onClick={handleSuggestImages} disabled={isVisualLoading} icon={<Wand2 className="w-3 h-3" />}>
-                        {t('editor.visual.suggest')}
-                      </Button>
-                    </div>
-
-                    {searchImages.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2">
-                        {searchImages.map((img, i) => (
-                          <img
-                            key={i}
-                            src={img}
-                            alt="Result"
-                            className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 border border-[var(--border-color)]"
-                            onClick={() => setSelectedImage(img)}
-                          />
-                        ))}
-                      </div>
-                    )}
 
                     <div className="border-t border-[var(--border-color)] pt-4">
-                      <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-2">Editor de Slide</label>
+                      <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-2">Editor de Slide (Simplificado)</label>
                       <div ref={previewRef} className="aspect-video bg-black rounded-lg overflow-hidden relative shadow-md group">
-                        {selectedImage ? (
-                          <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" style={{ filter: IMAGE_FILTERS[imageFilter as keyof typeof IMAGE_FILTERS]?.style }} />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/50 text-xs" style={{ backgroundColor: visualBgColor }}>
-                            {overlayText ? '' : 'Click para agregar texto'}
-                          </div>
-                        )}
+                        <div className="w-full h-full flex items-center justify-center text-white/50 text-xs" style={{ backgroundColor: visualBgColor }}>
+                          {overlayText ? '' : 'Texto sobre fondo sólido'}
+                        </div>
                         {overlayText && (
                           <div className="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-                            <div className="bg-black text-white p-4 rounded text-center font-bold" style={{ backgroundColor: selectedImage ? `${visualBgColor}${Math.round(overlayOpacity * 2.55).toString(16).padStart(2, '0')}` : 'transparent', fontSize: `${visualTextSize}px` }}>
+                            <div className="bg-black text-white p-4 rounded text-center font-bold" style={{ backgroundColor: 'transparent', fontSize: `${visualTextSize}px` }}>
                               {overlayText}
                             </div>
                           </div>
                         )}
-                        {placedIcons.map(icon => (
-                          <DraggableIcon key={icon.id} {...icon} onRemove={removeIcon} parentRef={previewRef} tooltip={t('ui.drag_remove')} />
-                        ))}
                       </div>
+                    </div>
 
-                      <div className="mt-3 space-y-3">
-                        <textarea
-                          value={overlayText}
-                          onChange={(e) => setOverlayText(e.target.value)}
-                          placeholder={t('editor.visual.overlay_placeholder')}
-                          className="w-full p-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded text-xs text-[var(--text-primary)] resize-none"
-                          rows={2}
-                        />
-                        <div className="flex justify-between items-center">
-                          <button onClick={handlePasteVerse} className="text-xs text-blue-500 hover:underline">{t('editor.visual.paste_verse')}</button>
-                          <div className="flex gap-1 items-center">
-                            <span className="text-[10px] text-[var(--text-secondary)] mr-1">Fondo:</span>
-                            {['#000000', '#1e3a5f', '#2d4a3e', '#4a1a2d', '#3d2d1a', '#1a1a3d', '#3d1a1a'].map(color => (
-                              <button
-                                key={color}
-                                onClick={() => setVisualBgColor(color)}
-                                className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${visualBgColor === color ? 'border-white scale-110' : 'border-transparent'}`}
-                                style={{ backgroundColor: color }}
-                              />
-                            ))}
-                            <input type="color" value={visualBgColor} onChange={(e) => setVisualBgColor(e.target.value)} className="w-5 h-5 p-0 border-0 rounded cursor-pointer" title="Color personalizado" />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div><label className="text-[10px] text-[var(--text-secondary)]">{t('editor.visual.opacity')}</label><input type="range" min="0" max="100" value={overlayOpacity} onChange={(e) => setOverlayOpacity(parseInt(e.target.value))} className="w-full h-1 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer" /></div>
-                          <div><label className="text-[10px] text-[var(--text-secondary)]">{t('editor.visual.text_size')}</label><input type="range" min="12" max="72" value={visualTextSize} onChange={(e) => setVisualTextSize(parseInt(e.target.value))} className="w-full h-1 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer" /></div>
-                        </div>
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                          {Object.entries(IMAGE_FILTERS).map(([key, filter]) => (
-                            <button key={key} onClick={() => setImageFilter(key)} className={`px-2 py-1 text-[10px] rounded border ${imageFilter === key ? 'bg-blue-600 text-white border-blue-600' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-color)]'}`}>{filter.label}</button>
+                    <div className="mt-3 space-y-3">
+                      <textarea
+                        value={overlayText}
+                        onChange={(e) => setOverlayText(e.target.value)}
+                        placeholder={t('editor.visual.overlay_placeholder')}
+                        className="w-full p-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded text-xs text-[var(--text-primary)] resize-none"
+                        rows={2}
+                      />
+                      <div className="flex justify-between items-center">
+                        <button onClick={handlePasteVerse} className="text-xs text-blue-500 hover:underline">{t('editor.visual.paste_verse')}</button>
+                        <div className="flex gap-1 items-center">
+                          <span className="text-[10px] text-[var(--text-secondary)] mr-1">Fondo:</span>
+                          {['#000000', '#1e3a5f', '#2d4a3e', '#4a1a2d', '#3d2d1a', '#1a1a3d', '#3d1a1a'].map(color => (
+                            <button
+                              key={color}
+                              onClick={() => setVisualBgColor(color)}
+                              className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${visualBgColor === color ? 'border-white scale-110' : 'border-transparent'}`}
+                              style={{ backgroundColor: color }}
+                            />
                           ))}
+                          <input type="color" value={visualBgColor} onChange={(e) => setVisualBgColor(e.target.value)} className="w-5 h-5 p-0 border-0 rounded cursor-pointer" title="Color personalizado" />
                         </div>
-
-                        <div>
-                          <label className="text-[10px] text-[var(--text-secondary)] uppercase font-bold mb-1 block">Stickers</label>
-                          <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide">
-                            {CHRISTIAN_EMOJIS.map(emoji => (
-                              <button key={emoji} onClick={() => addIconToCanvas(emoji)} className="text-xl hover:scale-125 transition-transform">{emoji}</button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleLocalImageUpload} />
-                            <Button variant="secondary" size="sm" className="w-full text-xs">Subir Foto</Button>
-                          </div>
-                          <Button size="sm" className="flex-1 text-xs" onClick={downloadImage} disabled={!selectedImage}>{t('ui.download_image')}</Button>
-                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><label className="text-[10px] text-[var(--text-secondary)]">{t('editor.visual.opacity')}</label><input type="range" min="0" max="100" value={overlayOpacity} onChange={(e) => setOverlayOpacity(parseInt(e.target.value))} className="w-full h-1 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer" /></div>
+                        <div><label className="text-[10px] text-[var(--text-secondary)]">{t('editor.visual.text_size')}</label><input type="range" min="12" max="72" value={visualTextSize} onChange={(e) => setVisualTextSize(parseInt(e.target.value))} className="w-full h-1 bg-[var(--bg-secondary)] rounded-lg appearance-none cursor-pointer" /></div>
                       </div>
                     </div>
                   </div>
@@ -1833,387 +1771,393 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       </div>
 
       {/* CONFIG MODAL - RESTORED */}
-      {showConfigModal && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] w-full max-w-2xl rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] flex justify-between items-center shrink-0">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Settings className="w-5 h-5 text-[var(--accent-color)]" /> {t('config.title')}</h2>
-              <button onClick={() => setShowConfigModal(false)}><X className="w-6 h-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" /></button>
-            </div>
-            <div className="p-6 overflow-y-auto space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.sermon_title')}</label>
-                  <input type="text" value={sermon.title} onChange={(e) => setSermon(prev => ({ ...prev, title: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.speaker')}</label>
-                  <div className="flex gap-2">
-                    <select
-                      onChange={(e) => {
-                        const prefix = e.target.value;
-                        if (prefix) {
-                          setSermon(prev => ({ ...prev, speaker: `${prefix} ${prev.speaker}`.trim() }));
-                          e.target.value = ''; // Reset select after insert
-                        }
-                      }}
-                      className="w-16 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs cursor-pointer"
-                    >
-                      <option value="">...</option>
-                      {SPEAKER_PREFIXES.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                    <input type="text" value={sermon.speaker} onChange={(e) => setSermon(prev => ({ ...prev, speaker: e.target.value }))} className="flex-1 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
+      {
+        showConfigModal && (
+          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[var(--bg-secondary)] w-full max-w-2xl rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)] flex justify-between items-center shrink-0">
+                <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2"><Settings className="w-5 h-5 text-[var(--accent-color)]" /> {t('config.title')}</h2>
+                <button onClick={() => setShowConfigModal(false)}><X className="w-6 h-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]" /></button>
+              </div>
+              <div className="p-6 overflow-y-auto space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.sermon_title')}</label>
+                    <input type="text" value={sermon.title} onChange={(e) => setSermon(prev => ({ ...prev, title: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
                   </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.date')}</label>
-                  <input type="date" value={sermon.date} onChange={(e) => setSermon(prev => ({ ...prev, date: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.location')}</label>
-                  <input type="text" value={sermon.location} onChange={(e) => setSermon(prev => ({ ...prev, location: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">Evento / Servicio</label>
-                  <input type="text" value={sermon.eventName || ''} onChange={(e) => setSermon(prev => ({ ...prev, eventName: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" placeholder="Ej. Culto Dominical" />
-                </div>
-              </div>
-
-              {/* Category Selector */}
-              <div>
-                <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.category')}</label>
-                <select
-                  value={sermon.category || ''}
-                  onChange={(e) => setSermon(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] appearance-none cursor-pointer"
-                >
-                  <option value="">{t('config.category_placeholder')}</option>
-                  <option value="Evangelismo">📢 Evangelismo</option>
-                  <option value="Discipulado">📚 Discipulado</option>
-                  <option value="Adoración">🙏 Adoración</option>
-                  <option value="Oración">🕊️ Oración</option>
-                  <option value="Familia">👨‍👩‍👧‍👦 Familia</option>
-                  <option value="Jóvenes">🎯 Jóvenes</option>
-                  <option value="Niños">🎈 Niños</option>
-                  <option value="Adviento">✨ Adviento</option>
-                  <option value="Navidad">🎄 Navidad</option>
-                  <option value="Semana Santa">✝️ Semana Santa</option>
-                  <option value="Pentecostés">🔥 Pentecostés</option>
-                  <option value="Mayordomía">💰 Mayordomía</option>
-                  <option value="Servicio">🤝 Servicio</option>
-                  <option value="Misiones">🌍 Misiones</option>
-                  <option value="Otro">📝 Otro</option>
-                </select>
-              </div>
-
-              {/* Verse Picker Section */}
-              <div className="p-4 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                <label className="block text-sm font-bold text-[var(--text-primary)] mb-3 flex items-center justify-between">
-                  <span>{t('config.verse_base')}</span>
-                  {versePickerStep !== 'none' && <button onClick={() => setVersePickerStep('none')} className="text-xs text-red-500 hover:underline">Cancelar Selección</button>}
-                </label>
-
-                {versePickerStep === 'none' ? (
-                  <div
-                    className={`group p-0 bg-[var(--bg-primary)] border-2 border-[var(--border-color)] rounded-xl overflow-hidden shadow-sm transition-all relative flex flex-col min-h-[160px]`}
-                  >
-                    {sermon.mainVerse ? (
-                      <div className="flex flex-col h-full">
-                        {/* Header: Reference and Version */}
-                        <div className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)] px-4 py-3 flex justify-between items-center shrink-0">
-                          <div className="flex items-center gap-2">
-                            <BookOpen className="w-5 h-5 text-[var(--accent-color)]" />
-                            <span className="font-bold text-lg text-[var(--text-primary)]">{sermon.mainVerse}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="relative">
-                              <select
-                                value={sermon.mainVerseVersion || 'RVR1960'}
-                                onChange={handleVersionChange}
-                                className="appearance-none bg-[var(--bg-tertiary)] text-xs font-bold text-[var(--text-primary)] px-3 py-1.5 pr-8 rounded-lg border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent-color)] cursor-pointer"
-                              >
-                                {bibleVersions.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                              </select>
-                              <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
-                            </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleRegenerateVerseText(); }}
-                              className="p-1.5 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
-                              title="Refrescar cita (Buscar variación)"
-                            >
-                              <RefreshCw className={`w-4 h-4 ${isVerseLoading ? 'animate-spin' : ''}`} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteVerse(); }}
-                              className="p-1.5 rounded-lg bg-red-50 hover:bg-red-500 hover:text-white text-red-500 transition-colors border border-red-100"
-                              title="Eliminar cita"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Content: The Verse Text */}
-                        <div className="flex-1 p-6 bg-gradient-to-b from-[var(--bg-primary)] to-[var(--bg-tertiary)] flex items-center justify-center text-center">
-                          {isVerseLoading ? (
-                            <div className="flex flex-col items-center text-[var(--text-secondary)] gap-2">
-                              <Loader2 className="w-6 h-6 animate-spin" />
-                              <span className="text-xs">Buscando...</span>
-                            </div>
-                          ) : (
-                            <div className="space-y-2 w-full">
-                              <h3 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] font-reading">{sermon.mainVerse}</h3>
-                              <p className="font-reading text-lg md:text-xl text-[var(--text-primary)] italic leading-relaxed px-4 line-clamp-3 text-justify">
-                                "{sermon.mainVerseText || 'Texto no disponible'}"
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-4 p-4">
-                        {/* Option 1: Manual Selection */}
-                        <button
-                          onClick={handleOpenVersePicker}
-                          className="group p-4 bg-[var(--bg-primary)] border-2 border-[var(--border-color)] rounded-xl hover:border-[var(--accent-color)] hover:shadow-lg transition-all flex items-center gap-4"
-                        >
-                          <div className="p-3 bg-blue-100 rounded-xl group-hover:scale-110 transition-transform">
-                            <BookOpen className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div className="text-left">
-                            <span className="font-bold text-[var(--text-primary)]">{t('config.manual_select')}</span>
-                            <p className="text-xs text-[var(--text-secondary)]">Seleccionar libro, capítulo y versículo</p>
-                          </div>
-                        </button>
-
-                        {/* Divider */}
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-px bg-[var(--border-color)]"></div>
-                          <span className="text-xs text-[var(--text-secondary)] uppercase">{t('config.or_search_theme')}</span>
-                          <div className="flex-1 h-px bg-[var(--border-color)]"></div>
-                        </div>
-
-                        {/* Option 2: Theme Search */}
-                        <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl">
-                          <div className="flex items-center gap-2 mb-3">
-                            <Search className="w-5 h-5 text-purple-600" />
-                            <span className="font-bold text-purple-800 dark:text-purple-300">{t('config.theme_search')}</span>
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={themeSearch}
-                              onChange={(e) => setThemeSearch(e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleSearchByTheme()}
-                              placeholder={t('config.theme_placeholder')}
-                              className="flex-1 p-3 rounded-lg bg-white dark:bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm"
-                            />
-                            <Button onClick={handleSearchByTheme} loading={isSearchingTheme}>
-                              <Search className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          {/* Suggested Verses */}
-                          {suggestedVerses.length > 0 && (
-                            <div className="mt-4 space-y-2 max-h-[200px] overflow-y-auto">
-                              {suggestedVerses.map((verse, idx) => (
-                                <div key={idx} className="p-3 bg-white dark:bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] hover:border-purple-400 transition-all">
-                                  <div className="flex justify-between items-start gap-2">
-                                    <div className="flex-1">
-                                      <span className="font-bold text-purple-700 dark:text-purple-400">{verse.ref}</span>
-                                      <p className="text-sm text-[var(--text-primary)] mt-1 line-clamp-2">"{verse.text}"</p>
-                                      <p className="text-xs text-[var(--text-secondary)] mt-1 italic">📌 {verse.relevance}</p>
-                                    </div>
-                                    <Button size="sm" onClick={() => handleSelectSuggestedVerse(verse)}>
-                                      {t('config.select_verse')}
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {isSearchingTheme && (
-                            <div className="mt-4 flex items-center justify-center gap-2 text-purple-600">
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                              <span className="text-sm">Buscando versículos relacionados...</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4 animate-fade-in bg-[var(--bg-primary)] p-4 rounded-xl border border-[var(--border-color)] h-[300px] flex flex-col">
-                    {/* Version Selector inside Picker */}
-                    <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-2 shrink-0">
-                      <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
-                        {versePickerStep === 'books'
-                          ? 'Selecciona Libro'
-                          : versePickerStep === 'chapters' && tempSelectedBook
-                            ? tempSelectedBook.name
-                            : versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter
-                              ? `${tempSelectedBook.name} ${tempSelectedChapter}`
-                              : 'Selección'}
-                      </span>
-                      <div className="relative">
-                        <select
-                          value={sermon.mainVerseVersion || 'RVR1960'}
-                          onChange={(e) => setSermon(prev => ({ ...prev, mainVerseVersion: e.target.value }))}
-                          className="appearance-none bg-[var(--bg-secondary)] text-[10px] font-bold text-[var(--text-primary)] px-2 py-1 pr-6 rounded border border-[var(--border-color)] focus:outline-none"
-                        >
-                          {bibleVersions.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                        </select>
-                        <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
-                      </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.speaker')}</label>
+                    <div className="flex gap-2">
+                      <select
+                        onChange={(e) => {
+                          const prefix = e.target.value;
+                          if (prefix) {
+                            setSermon(prev => ({ ...prev, speaker: `${prefix} ${prev.speaker}`.trim() }));
+                            e.target.value = ''; // Reset select after insert
+                          }
+                        }}
+                        className="w-16 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs cursor-pointer"
+                      >
+                        <option value="">...</option>
+                        {SPEAKER_PREFIXES.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                      <input type="text" value={sermon.speaker} onChange={(e) => setSermon(prev => ({ ...prev, speaker: e.target.value }))} className="flex-1 p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
                     </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.date')}</label>
+                    <input type="date" value={sermon.date} onChange={(e) => setSermon(prev => ({ ...prev, date: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.location')}</label>
+                    <input type="text" value={sermon.location} onChange={(e) => setSermon(prev => ({ ...prev, location: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">Evento / Servicio</label>
+                    <input type="text" value={sermon.eventName || ''} onChange={(e) => setSermon(prev => ({ ...prev, eventName: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" placeholder="Ej. Culto Dominical" />
+                  </div>
+                </div>
 
-                    {versePickerStep === 'books' && (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-1 content-start">
-                        {BIBLE_BOOKS.map(b => (
-                          <button key={b.id} onClick={() => handleVersePickerBookClick(b)} className="h-auto min-h-[40px] text-[11px] p-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] text-center whitespace-normal leading-tight transition-colors flex items-center justify-center">
-                            {b.name}
+                {/* Category Selector */}
+                <div>
+                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">{t('config.category')}</label>
+                  <select
+                    value={sermon.category || ''}
+                    onChange={(e) => setSermon(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] appearance-none cursor-pointer"
+                  >
+                    <option value="">{t('config.category_placeholder')}</option>
+                    <option value="Evangelismo">📢 Evangelismo</option>
+                    <option value="Discipulado">📚 Discipulado</option>
+                    <option value="Adoración">🙏 Adoración</option>
+                    <option value="Oración">🕊️ Oración</option>
+                    <option value="Familia">👨‍👩‍👧‍👦 Familia</option>
+                    <option value="Jóvenes">🎯 Jóvenes</option>
+                    <option value="Niños">🎈 Niños</option>
+                    <option value="Adviento">✨ Adviento</option>
+                    <option value="Navidad">🎄 Navidad</option>
+                    <option value="Semana Santa">✝️ Semana Santa</option>
+                    <option value="Pentecostés">🔥 Pentecostés</option>
+                    <option value="Mayordomía">💰 Mayordomía</option>
+                    <option value="Servicio">🤝 Servicio</option>
+                    <option value="Misiones">🌍 Misiones</option>
+                    <option value="Otro">📝 Otro</option>
+                  </select>
+                </div>
+
+                {/* Verse Picker Section */}
+                <div className="p-4 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                  <label className="block text-sm font-bold text-[var(--text-primary)] mb-3 flex items-center justify-between">
+                    <span>{t('config.verse_base')}</span>
+                    {versePickerStep !== 'none' && <button onClick={() => setVersePickerStep('none')} className="text-xs text-red-500 hover:underline">Cancelar Selección</button>}
+                  </label>
+
+                  {versePickerStep === 'none' ? (
+                    <div
+                      className={`group p-0 bg-[var(--bg-primary)] border-2 border-[var(--border-color)] rounded-xl overflow-hidden shadow-sm transition-all relative flex flex-col min-h-[160px]`}
+                    >
+                      {sermon.mainVerse ? (
+                        <div className="flex flex-col h-full">
+                          {/* Header: Reference and Version */}
+                          <div className="bg-[var(--bg-secondary)] border-b border-[var(--border-color)] px-4 py-3 flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="w-5 h-5 text-[var(--accent-color)]" />
+                              <span className="font-bold text-lg text-[var(--text-primary)]">{sermon.mainVerse}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="relative">
+                                <select
+                                  value={sermon.mainVerseVersion || 'RVR1960'}
+                                  onChange={handleVersionChange}
+                                  className="appearance-none bg-[var(--bg-tertiary)] text-xs font-bold text-[var(--text-primary)] px-3 py-1.5 pr-8 rounded-lg border border-[var(--border-color)] focus:outline-none focus:border-[var(--accent-color)] cursor-pointer"
+                                >
+                                  {bibleVersions.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                </select>
+                                <ChevronDown className="w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRegenerateVerseText(); }}
+                                className="p-1.5 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
+                                title="Refrescar cita (Buscar variación)"
+                              >
+                                <RefreshCw className={`w-4 h-4 ${isVerseLoading ? 'animate-spin' : ''}`} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteVerse(); }}
+                                className="p-1.5 rounded-lg bg-red-50 hover:bg-red-500 hover:text-white text-red-500 transition-colors border border-red-100"
+                                title="Eliminar cita"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Content: The Verse Text */}
+                          <div className="flex-1 p-6 bg-gradient-to-b from-[var(--bg-primary)] to-[var(--bg-tertiary)] flex items-center justify-center text-center">
+                            {isVerseLoading ? (
+                              <div className="flex flex-col items-center text-[var(--text-secondary)] gap-2">
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                                <span className="text-xs">Buscando...</span>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 w-full">
+                                <h3 className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] font-reading">{sermon.mainVerse}</h3>
+                                <p className="font-reading text-lg md:text-xl text-[var(--text-primary)] italic leading-relaxed px-4 line-clamp-3 text-justify">
+                                  "{sermon.mainVerseText || 'Texto no disponible'}"
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-4 p-4">
+                          {/* Option 1: Manual Selection */}
+                          <button
+                            onClick={handleOpenVersePicker}
+                            className="group p-4 bg-[var(--bg-primary)] border-2 border-[var(--border-color)] rounded-xl hover:border-[var(--accent-color)] hover:shadow-lg transition-all flex items-center gap-4"
+                          >
+                            <div className="p-3 bg-blue-100 rounded-xl group-hover:scale-110 transition-transform">
+                              <BookOpen className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <div className="text-left">
+                              <span className="font-bold text-[var(--text-primary)]">{t('config.manual_select')}</span>
+                              <p className="text-xs text-[var(--text-secondary)]">Seleccionar libro, capítulo y versículo</p>
+                            </div>
                           </button>
-                        ))}
+
+                          {/* Divider */}
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 h-px bg-[var(--border-color)]"></div>
+                            <span className="text-xs text-[var(--text-secondary)] uppercase">{t('config.or_search_theme')}</span>
+                            <div className="flex-1 h-px bg-[var(--border-color)]"></div>
+                          </div>
+
+                          {/* Option 2: Theme Search */}
+                          <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Search className="w-5 h-5 text-purple-600" />
+                              <span className="font-bold text-purple-800 dark:text-purple-300">{t('config.theme_search')}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={themeSearch}
+                                onChange={(e) => setThemeSearch(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearchByTheme()}
+                                placeholder={t('config.theme_placeholder')}
+                                className="flex-1 p-3 rounded-lg bg-white dark:bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm"
+                              />
+                              <Button onClick={handleSearchByTheme} loading={isSearchingTheme}>
+                                <Search className="w-4 h-4" />
+                              </Button>
+                            </div>
+
+                            {/* Suggested Verses */}
+                            {suggestedVerses.length > 0 && (
+                              <div className="mt-4 space-y-2 max-h-[200px] overflow-y-auto">
+                                {suggestedVerses.map((verse, idx) => (
+                                  <div key={idx} className="p-3 bg-white dark:bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] hover:border-purple-400 transition-all">
+                                    <div className="flex justify-between items-start gap-2">
+                                      <div className="flex-1">
+                                        <span className="font-bold text-purple-700 dark:text-purple-400">{verse.ref}</span>
+                                        <p className="text-sm text-[var(--text-primary)] mt-1 line-clamp-2">"{verse.text}"</p>
+                                        <p className="text-xs text-[var(--text-secondary)] mt-1 italic">📌 {verse.relevance}</p>
+                                      </div>
+                                      <Button size="sm" onClick={() => handleSelectSuggestedVerse(verse)}>
+                                        {t('config.select_verse')}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {isSearchingTheme && (
+                              <div className="mt-4 flex items-center justify-center gap-2 text-purple-600">
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <span className="text-sm">Buscando versículos relacionados...</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4 animate-fade-in bg-[var(--bg-primary)] p-4 rounded-xl border border-[var(--border-color)] h-[300px] flex flex-col">
+                      {/* Version Selector inside Picker */}
+                      <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-2 shrink-0">
+                        <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
+                          {versePickerStep === 'books'
+                            ? 'Selecciona Libro'
+                            : versePickerStep === 'chapters' && tempSelectedBook
+                              ? tempSelectedBook.name
+                              : versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter
+                                ? `${tempSelectedBook.name} ${tempSelectedChapter}`
+                                : 'Selección'}
+                        </span>
+                        <div className="relative">
+                          <select
+                            value={sermon.mainVerseVersion || 'RVR1960'}
+                            onChange={(e) => setSermon(prev => ({ ...prev, mainVerseVersion: e.target.value }))}
+                            className="appearance-none bg-[var(--bg-secondary)] text-[10px] font-bold text-[var(--text-primary)] px-2 py-1 pr-6 rounded border border-[var(--border-color)] focus:outline-none"
+                          >
+                            {bibleVersions.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                          </select>
+                          <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
+                        </div>
                       </div>
-                    )}
-                    {versePickerStep === 'chapters' && tempSelectedBook && (
-                      <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start">
-                        {Array.from({ length: tempSelectedBook.chapters }, (_, i) => i + 1).map(c => (
-                          <button key={c} onClick={() => handleVersePickerChapterClick(c)} className="aspect-square flex items-center justify-center text-sm font-bold bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white transition-colors">
-                            {c}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter && (
-                      <div className="flex flex-col h-full">
-                        <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start mb-2">
-                          {Array.from({ length: 50 }, (_, i) => i + 1).map(v => (
-                            <button
-                              key={v}
-                              onClick={() => handleVersePickerVerseToggle(v)}
-                              className={`aspect-square flex items-center justify-center text-sm font-bold rounded-lg border transition-all ${tempSelectedVerses.includes(v) ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)] scale-105 shadow-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}`}
-                            >
-                              {v}
+
+                      {versePickerStep === 'books' && (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-1 content-start">
+                          {BIBLE_BOOKS.map(b => (
+                            <button key={b.id} onClick={() => handleVersePickerBookClick(b)} className="h-auto min-h-[40px] text-[11px] p-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] text-center whitespace-normal leading-tight transition-colors flex items-center justify-center">
+                              {b.name}
                             </button>
                           ))}
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)] shrink-0">
-                          <span className="text-xs text-[var(--text-secondary)]">
-                            {tempSelectedVerses.length > 0 ? `${tempSelectedVerses.length} seleccionados` : 'Selecciona versículos'}
-                          </span>
-                          <Button size="sm" onClick={handleConfirmVerseSelection} disabled={tempSelectedVerses.length === 0}>Confirmar</Button>
+                      )}
+                      {versePickerStep === 'chapters' && tempSelectedBook && (
+                        <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start">
+                          {Array.from({ length: tempSelectedBook.chapters }, (_, i) => i + 1).map(c => (
+                            <button key={c} onClick={() => handleVersePickerChapterClick(c)} className="aspect-square flex items-center justify-center text-sm font-bold bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white transition-colors">
+                              {c}
+                            </button>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                      {versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter && (
+                        <div className="flex flex-col h-full">
+                          <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start mb-2">
+                            {Array.from({ length: 50 }, (_, i) => i + 1).map(v => (
+                              <button
+                                key={v}
+                                onClick={() => handleVersePickerVerseToggle(v)}
+                                className={`aspect-square flex items-center justify-center text-sm font-bold rounded-lg border transition-all ${tempSelectedVerses.includes(v) ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)] scale-105 shadow-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}`}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)] shrink-0">
+                            <span className="text-xs text-[var(--text-secondary)]">
+                              {tempSelectedVerses.length > 0 ? `${tempSelectedVerses.length} seleccionados` : 'Selecciona versículos'}
+                            </span>
+                            <Button size="sm" onClick={handleConfirmVerseSelection} disabled={tempSelectedVerses.length === 0}>Confirmar</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="p-6 border-t border-[var(--border-color)] flex justify-end gap-3 shrink-0 bg-[var(--bg-secondary)]">
+                <Button variant="ghost" onClick={() => setShowConfigModal(false)}>{t('config.cancel')}</Button>
+                <Button onClick={handleSaveConfig} loading={isGeneratingStructure}>{t('config.save_generate')}</Button>
               </div>
             </div>
-            <div className="p-6 border-t border-[var(--border-color)] flex justify-end gap-3 shrink-0 bg-[var(--bg-secondary)]">
-              <Button variant="ghost" onClick={() => setShowConfigModal(false)}>{t('config.cancel')}</Button>
-              <Button onClick={handleSaveConfig} loading={isGeneratingStructure}>{t('config.save_generate')}</Button>
-            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Storage Selection Dialog */}
-      {showStorageDialog && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-          <div className="bg-[var(--bg-secondary)] w-full max-w-md rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden">
-            <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <Cloud className="w-6 h-6 text-purple-600" />
-                Guardar Sermón
-              </h2>
-              <p className="text-sm text-[var(--text-secondary)] mt-1">Elige dónde guardar tu sermón</p>
-            </div>
+      {
+        showStorageDialog && (
+          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-[var(--bg-secondary)] w-full max-w-md rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden">
+              <div className="p-6 border-b border-[var(--border-color)] bg-[var(--bg-tertiary)]">
+                <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <Cloud className="w-6 h-6 text-purple-600" />
+                  Guardar Sermón
+                </h2>
+                <p className="text-sm text-[var(--text-secondary)] mt-1">Elige dónde guardar tu sermón</p>
+              </div>
 
-            <div className="p-6 space-y-3">
-              {/* Local File */}
-              <button
-                onClick={handleSaveToLocalFile}
-                className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-[var(--accent-color)] hover:shadow-md transition-all flex items-center gap-4"
-              >
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <HardDrive className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="text-left">
-                  <div className="font-bold text-[var(--text-primary)]">Archivo Local</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Descargar como archivo .json</div>
-                </div>
-              </button>
+              <div className="p-6 space-y-3">
+                {/* Local File */}
+                <button
+                  onClick={handleSaveToLocalFile}
+                  className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-[var(--accent-color)] hover:shadow-md transition-all flex items-center gap-4"
+                >
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <HardDrive className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-bold text-[var(--text-primary)]">Archivo Local</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Descargar como archivo .json</div>
+                  </div>
+                </button>
 
-              {/* Google Drive */}
-              <button
-                onClick={() => handleSaveToCloud('gdrive')}
-                className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-green-400 hover:shadow-md transition-all flex items-center gap-4 opacity-70"
-              >
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Cloud className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="text-left flex-1">
-                  <div className="font-bold text-[var(--text-primary)]">Google Drive</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Próximamente</div>
-                </div>
-                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Beta</span>
-              </button>
+                {/* Google Drive */}
+                <button
+                  onClick={() => handleSaveToCloud('gdrive')}
+                  className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-green-400 hover:shadow-md transition-all flex items-center gap-4 opacity-70"
+                >
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <Cloud className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="font-bold text-[var(--text-primary)]">Google Drive</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Próximamente</div>
+                  </div>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Beta</span>
+                </button>
 
-              {/* OneDrive */}
-              <button
-                onClick={() => handleSaveToCloud('onedrive')}
-                className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-blue-400 hover:shadow-md transition-all flex items-center gap-4 opacity-70"
-              >
-                <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center">
-                  <Cloud className="w-6 h-6 text-sky-600" />
-                </div>
-                <div className="text-left flex-1">
-                  <div className="font-bold text-[var(--text-primary)]">OneDrive</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Próximamente</div>
-                </div>
-                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Beta</span>
-              </button>
+                {/* OneDrive */}
+                <button
+                  onClick={() => handleSaveToCloud('onedrive')}
+                  className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-blue-400 hover:shadow-md transition-all flex items-center gap-4 opacity-70"
+                >
+                  <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center">
+                    <Cloud className="w-6 h-6 text-sky-600" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="font-bold text-[var(--text-primary)]">OneDrive</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Próximamente</div>
+                  </div>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Beta</span>
+                </button>
 
-              {/* iCloud */}
-              <button
-                onClick={() => handleSaveToCloud('icloud')}
-                className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-gray-400 hover:shadow-md transition-all flex items-center gap-4 opacity-70"
-              >
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <Cloud className="w-6 h-6 text-gray-600" />
-                </div>
-                <div className="text-left flex-1">
-                  <div className="font-bold text-[var(--text-primary)]">iCloud</div>
-                  <div className="text-xs text-[var(--text-secondary)]">Próximamente</div>
-                </div>
-                <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Beta</span>
-              </button>
-            </div>
+                {/* iCloud */}
+                <button
+                  onClick={() => handleSaveToCloud('icloud')}
+                  className="w-full p-4 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl hover:border-gray-400 hover:shadow-md transition-all flex items-center gap-4 opacity-70"
+                >
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
+                    <Cloud className="w-6 h-6 text-gray-600" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="font-bold text-[var(--text-primary)]">iCloud</div>
+                    <div className="text-xs text-[var(--text-secondary)]">Próximamente</div>
+                  </div>
+                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">Beta</span>
+                </button>
+              </div>
 
-            <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-tertiary)]">
-              <Button variant="ghost" onClick={() => setShowStorageDialog(false)} className="w-full">
-                Cancelar
-              </Button>
+              <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-tertiary)]">
+                <Button variant="ghost" onClick={() => setShowStorageDialog(false)} className="w-full">
+                  Cancelar
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* CONTEXT MENU */}
-      {contextMenu.show && (
-        <ContextMenu
-          selectedText={contextMenu.selectedText}
-          position={contextMenu.position}
-          onClose={() => setContextMenu(prev => ({ ...prev, show: false }))}
-          onAddNote={handleAddMarginNote}
-          onInsertToSermon={handleInsertFromContextMenu}
-          sectionId={activeSectionId}
-        />
-      )}
-    </div>
+      {
+        contextMenu.show && (
+          <ContextMenu
+            selectedText={contextMenu.selectedText}
+            position={contextMenu.position}
+            onClose={() => setContextMenu(prev => ({ ...prev, show: false }))}
+            onAddNote={handleAddMarginNote}
+            onInsertToSermon={handleInsertFromContextMenu}
+            sectionId={activeSectionId}
+          />
+        )
+      }
+    </div >
   );
 };

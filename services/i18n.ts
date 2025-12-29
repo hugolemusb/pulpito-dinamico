@@ -362,7 +362,7 @@ export const RESOURCES: Record<Language, any> = {
       visual: {
         search: "Buscar imágenes...",
         suggest: "Sugerir Imágenes (IA)",
-        overlay_placeholder: "Texto para superponer en la imagen...",
+
         paste_verse: "Pegar Versículo",
         opacity: "Opacidad",
         text_size: "Tamaño"
@@ -485,7 +485,7 @@ export const RESOURCES: Record<Language, any> = {
     },
     ui: {
       drag_remove: "Doble clic para eliminar",
-      download_image: "Descargar Imagen",
+
       refresh_refs: "Actualizar Referencias",
       search: "Buscar",
       loading: "Cargando...",
@@ -866,7 +866,7 @@ export const RESOURCES: Record<Language, any> = {
       visual: {
         search: "Search images...",
         suggest: "Suggest Images (AI)",
-        overlay_placeholder: "Text to overlay on image...",
+
         paste_verse: "Paste Verse",
         opacity: "Opacity",
         text_size: "Size"
@@ -1361,7 +1361,7 @@ export const RESOURCES: Record<Language, any> = {
       visual: {
         search: "Buscar imagens...",
         suggest: "Sugerir Imagens (IA)",
-        overlay_placeholder: "Texto para sobrepor na imagem...",
+
         paste_verse: "Colar Versículo",
         opacity: "Opacidade",
         text_size: "Tamanho"

@@ -1,10 +1,12 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Theme, ViewState, AIConfig, AIProvider, TextSettings, Language } from '../types';
-import { Home, Search, PenTool, Settings, X, Globe, Cpu, Zap, Box, Palette, Book, Type, LogOut, Highlighter, Underline, Smile, Star, MoreHorizontal, RotateCcw, Check, AlignLeft, AlignCenter, AlignRight, AlignJustify, CaseUpper, CaseLower, CaseSensitive, Type as TypeIcon, Ban, Bold, Italic, Strikethrough, List, ListOrdered, Table, LayoutTemplate, Trash2, User, Camera, WifiOff, Wifi, Library, Minus, Plus, Scaling, Undo, Redo, Calendar, LayoutGrid, Brain } from 'lucide-react';
+import { Home, Search, PenTool, Settings, X, Globe, Cpu, Zap, Box, Palette, Book, Type, LogOut, Highlighter, Underline, Smile, Star, MoreHorizontal, RotateCcw, Check, AlignLeft, AlignCenter, AlignRight, AlignJustify, CaseUpper, CaseLower, CaseSensitive, Type as TypeIcon, Ban, Bold, Italic, Strikethrough, List, ListOrdered, Table, LayoutTemplate, Trash2, User, Camera, WifiOff, Wifi, Library, Minus, Plus, Scaling, Undo, Redo, Calendar, LayoutGrid, Brain, RefreshCw, PenLine } from 'lucide-react';
 import { Button } from './Button';
 import { validateAIConfig } from '../services/geminiService';
 import { useTranslation } from '../context/LanguageContext';
+import { SelectionMenu } from './SelectionMenu';
+import { ImageResizer } from './ImageResizer';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -372,7 +374,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme, 
         </div>
       )}
 
-      <nav className={`w-20 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col items-center py-3 shrink-0 z-50 ${!isOnline ? 'pt-10' : ''}`}>
+      <nav id="main-sidebar" className={`w-20 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col items-center py-3 shrink-0 z-50 ${!isOnline ? 'pt-10' : ''}`}>
 
         {/* Brand Logo */}
         <div className="mb-4 p-1.5 bg-white/10 rounded-xl">
@@ -400,6 +402,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme, 
           <NavItem view="library" icon={Library} label={t('nav.library')} />
           <NavItem view="calendar" icon={Calendar} label="Agenda" />
           <NavItem view="editor" icon={PenTool} label={t('nav.editor')} />
+          <NavItem view="notes" icon={PenLine} label="Notas" />
           <NavItem view="infografia" icon={LayoutGrid} label="Infografía" />
           <NavItem view="memory" icon={Brain} label="Ayuda Memoria" />
         </div>
@@ -426,6 +429,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme, 
       </nav>
 
       <div className={`flex-1 flex flex-col min-w-0 h-full relative ${!isOnline ? 'pt-6' : ''}`}>
+        <SelectionMenu />
+        {currentView === 'editor' && <ImageResizer />}
         {children}
       </div>
 
@@ -637,6 +642,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme, 
         </div>
       )}
 
+      {/* Refresh Reminder Toast */}
       {showSettings && (
         <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-[var(--bg-secondary)] w-full max-w-lg rounded-xl shadow-2xl border border-[var(--border-color)] p-6 animate-fade-in flex flex-col max-h-[90vh]">
@@ -673,6 +679,83 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme, 
           </div>
         </div>
       )}
+
+      {/* Session Refresh Reminder */}
+      <SessionReminder />
+
+    </div>
+  );
+};
+
+// --- SESSION REMINDER COMPONENT ---
+const SessionReminder = () => {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    // Show only once per browser session
+    const hasSeen = sessionStorage.getItem('has_seen_refresh_reminder');
+    if (!hasSeen) {
+      setShow(true);
+      sessionStorage.setItem('has_seen_refresh_reminder', 'true');
+    }
+  }, []);
+
+  const handleCleanAndRefresh = () => {
+    if (window.confirm("¿Estás seguro? Esto borrará los datos temporales del navegador y recargará la página para asegurar una sesión limpia.")) {
+      // Clear specific keys known to cause ghosting
+      localStorage.removeItem('current_sermon');
+      localStorage.removeItem('teleprompter_study_content');
+      localStorage.removeItem('teleprompter_dictionary_content');
+      localStorage.removeItem('last_study_session');
+
+      // Reset Onboarding "Seen" flag
+      sessionStorage.removeItem('has_seen_prayer_overlay');
+      sessionStorage.removeItem('has_seen_refresh_reminder');
+
+      // Force reload
+      window.location.reload();
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[200] max-w-sm w-full animate-slide-in-right">
+      <div className="relative bg-gradient-to-br from-blue-900/90 to-purple-900/90 backdrop-blur-md border border-white/10 rounded-2xl p-5 shadow-2xl text-white overflow-hidden">
+
+        {/* Faded Background Pattern */}
+        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-20 h-20 bg-blue-500/10 rounded-full blur-xl pointer-events-none"></div>
+
+        <div className="relative z-10">
+          <button
+            onClick={() => setShow(false)}
+            className="absolute -top-1 -right-1 p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-white/10 rounded-xl shrink-0 border border-white/5 shadow-inner">
+              <RotateCcw className="w-6 h-6 text-blue-300" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-blue-100 mb-1 uppercase tracking-wider">Mantenimiento de Sesión</h4>
+              <p className="text-xs text-blue-200/80 leading-relaxed font-medium mb-3">
+                Para evitar mensajes antiguos ("fantasmas"), recuerda
+                <span className="text-white font-bold"> actualizar </span> tus secciones al iniciar.
+              </p>
+
+              <button
+                onClick={handleCleanAndRefresh}
+                className="text-xs bg-white/10 hover:bg-white/20 border border-white/10 text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 font-bold"
+              >
+                <RefreshCw className="w-3 h-3" /> Limpiar y Recargar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

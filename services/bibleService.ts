@@ -104,8 +104,85 @@ export const getBibleVersions = (lang: Language = 'es'): BibleVersion[] => {
   return VERSIONS_BY_LANG[lang] || VERSIONS_BY_LANG['es'];
 };
 
+
+// --- CACHING SYSTEM ---
+const CACHE_PREFIX = 'bible_text_';
+
+const getFromCache = (ref: string, version: string): string | null => {
+  try {
+    const key = `${CACHE_PREFIX}${version}_${ref.replace(/\s+/g, '_')}`;
+    const cached = localStorage.getItem(key);
+    if (cached) return cached;
+  } catch (e) {
+    console.warn("Storage error", e);
+  }
+  return null;
+};
+
+const saveToCache = (ref: string, version: string, text: string) => {
+  try {
+    const key = `${CACHE_PREFIX}${version}_${ref.replace(/\s+/g, '_')}`;
+    localStorage.setItem(key, text);
+
+    // Simple LRU/Limit could be implemented here, but for text, 5MB is a lot of verses.
+  } catch (e) {
+    console.warn("Storage quota likely exceeded", e);
+  }
+};
+
+// --- EXTERNAL API MAPPING ---
+// Maps our internal IDs to bible-api.com codes (where available/free)
+const API_VERSION_MAP: Record<string, string> = {
+  // ES
+  'RVR1960': '', // Copyrighted, use LLM or 'rvr' (1909) if user accepts? Defaulting to LLM for accuracy unless fallback needed
+  'RVR': 'rvr', // 1909
+
+  // EN
+  'KJV': 'kjv',
+  'WEB': 'web',
+  'ASV': 'asv',
+
+  // PT
+  'ARC': 'almeida', // Joao Ferreira de Almeida
+  'ALMEIDA': 'almeida'
+};
+
+const fetchFromPublicAPI = async (reference: string, version: string): Promise<string | null> => {
+  const apiCode = API_VERSION_MAP[version] || API_VERSION_MAP[version.split('-')[0]];
+  if (!apiCode) return null; // No free API for this specific version
+
+  try {
+    // bible-api.com expects format like "John 3:16" or "John 3"
+    // Our reference might be "Juan 3:16". Need to map book names? 
+    // bible-api.com is reasonably smart with standard names, but English is safest.
+    // However, it supports Spanish book names? Let's try direct fetch.
+
+    // Note: This API is free and public.
+    const url = `https://bible-api.com/${encodeURIComponent(reference)}?translation=${apiCode}`;
+    const response = await fetch(url);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data && data.text) {
+      // Format: Just the text, clean up
+      return data.text.trim();
+    }
+  } catch (e) {
+    console.error("API Fetch Error", e);
+  }
+  return null;
+};
+
 export const fetchVerseText = async (reference: string, version: string, forceVariation: boolean = false): Promise<string> => {
   try {
+    // 1. CHECK CACHE (Instant)
+    // Don't use cache if forcing variation
+    if (!forceVariation) {
+      const cached = getFromCache(reference, version);
+      if (cached) return cached;
+    }
+
     const lang = (localStorage.getItem('app_language') as Language) || 'es';
 
     // If version is generic or mismatching, default to the best for the language
@@ -115,6 +192,17 @@ export const fetchVerseText = async (reference: string, version: string, forceVa
       targetVersion = defaults[0].id;
     }
 
+    // 2. TRY PUBLIC API (Fast, Free)
+    // Only if not forcing variation (API is static)
+    if (!forceVariation) {
+      const apiText = await fetchFromPublicAPI(reference, targetVersion);
+      if (apiText) {
+        saveToCache(reference, targetVersion, apiText);
+        return apiText;
+      }
+    }
+
+    // 3. FALLBACK TO LLM (Slow, Costly, but Flexible)
     const variationPrompt = forceVariation
       ? `\nNOTA: El usuario solicita refrescar la cita. Asegúrate de verificar nuevamente la fuente. Si es posible, provee una variación en la presentación, corrige cualquier corte previo o busca una traducción alternativa válida dentro del mismo contexto si la versión lo permite. (Intento ${Date.now()})`
       : "";
@@ -133,6 +221,11 @@ export const fetchVerseText = async (reference: string, version: string, forceVa
     // Check for explicit error or empty response
     if (!text || text.trim().startsWith("ERROR:")) {
       throw new Error("Texto no encontrado o referencia inválida.");
+    }
+
+    // Cache the successful LLM result
+    if (!forceVariation) {
+      saveToCache(reference, targetVersion, text.trim());
     }
 
     return text.trim();

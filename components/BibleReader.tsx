@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, BookOpen, ChevronLeft, Check, Grid, List, ChevronDown, ChevronUp, Copy, RefreshCw, X, ArrowRight, FileInput, SplitSquareHorizontal, BookText, ChevronRight, Image, Download, Share2 } from 'lucide-react';
+import { Search, BookOpen, ChevronLeft, Check, Grid, List, ChevronDown, ChevronUp, Copy, RefreshCw, X, ArrowRight, FileInput, SplitSquareHorizontal, BookText, ChevronRight, Image, Download, Share2, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { fetchVerseText, getBibleVersions, BIBLE_BOOKS } from '../services/bibleService';
 import { TextSettings, Sermon, SectionType } from '../types';
 import { useTranslation } from '../context/LanguageContext';
+import { usePersistence } from '../context/PersistenceContext';
 
 interface BibleReaderProps {
   textSettings?: TextSettings;
@@ -15,29 +16,25 @@ export const BibleReader: React.FC<BibleReaderProps> = ({ textSettings, onNaviga
   const { t, language } = useTranslation();
   const versions = getBibleVersions(language);
 
-  // --- STATE MANAGEMENT ---
-  // Navigation State
-  const [pickerStep, setPickerStep] = useState<'books' | 'chapters' | 'verses' | 'reading' | 'search' | 'browse'>('books');
+  const { bibleReaderState, setBibleReaderState, loadBibleChapter } = usePersistence();
+  const { selectedBook, selectedChapter, primaryVersion, primaryText, isLoading, pickerStep } = bibleReaderState;
 
-  // Selection State
-  const [selectedBook, setSelectedBook] = useState<typeof BIBLE_BOOKS[0] | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
+  // Local UI helpers to update context (FIXING MISSING SETTERS)
+  const setPickerStep = (step: any) => setBibleReaderState(prev => ({ ...prev, pickerStep: step }));
+  const setSelectedBook = (book: any) => setBibleReaderState(prev => ({ ...prev, selectedBook: book }));
+  const setSelectedChapter = (chap: any) => setBibleReaderState(prev => ({ ...prev, selectedChapter: chap }));
+  const setPrimaryVersion = (ver: any) => setBibleReaderState(prev => ({ ...prev, primaryVersion: ver }));
+  const setPrimaryText = (txt: string) => setBibleReaderState(prev => ({ ...prev, primaryText: txt }));
+  const setIsLoading = (loading: boolean) => setBibleReaderState(prev => ({ ...prev, isLoading: loading }));
+
+  // Re-declaring missing local states:
   const [selectedVerses, setSelectedVerses] = useState<number[]>([]);
-
-  // Version State
-  const [primaryVersion, setPrimaryVersion] = useState<string>(versions[0].id);
-
-  // Comparison State
   const [isComparing, setIsComparing] = useState(false);
   const [comparisonVersion, setComparisonVersion] = useState<string>(versions.length > 1 ? versions[1].id : versions[0].id);
-
-  // Content State
-  const [currentReference, setCurrentReference] = useState('');
-  const [primaryText, setPrimaryText] = useState('');
   const [comparisonText, setComparisonText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [currentReference, setCurrentReference] = useState('');
 
-  // Keyword Search State
+  // Search State (Kept local, or restore from local persistence if not in context)
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Array<{ ref: string; text: string; relevance: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -123,44 +120,20 @@ export const BibleReader: React.FC<BibleReaderProps> = ({ textSettings, onNaviga
   ];
 
   // --- PERSISTENCE ---
-  useEffect(() => {
-    const saved = localStorage.getItem('bible_reader_state');
-    if (saved) {
-      try {
-        const state = JSON.parse(saved);
-        if (state.pickerStep) setPickerStep(state.pickerStep);
-        if (state.selectedBook) setSelectedBook(state.selectedBook);
-        if (state.selectedChapter) setSelectedChapter(state.selectedChapter);
-        if (state.selectedVerses) setSelectedVerses(state.selectedVerses);
-        if (state.primaryVersion) setPrimaryVersion(state.primaryVersion);
-        if (state.comparisonVersion) setComparisonVersion(state.comparisonVersion);
-        if (state.isComparing !== undefined) setIsComparing(state.isComparing);
-        if (state.currentReference) setCurrentReference(state.currentReference);
-        if (state.primaryText) setPrimaryText(state.primaryText);
-        if (state.comparisonText) setComparisonText(state.comparisonText);
-      } catch (e) {
-        console.error("Failed to load bible state", e);
-      }
-    }
-  }, []);
 
-  useEffect(() => {
-    const state = {
-      pickerStep,
-      selectedBook,
-      selectedChapter,
-      selectedVerses,
-      primaryVersion,
-      comparisonVersion,
-      isComparing,
-      currentReference,
-      primaryText,
-      comparisonText
-    };
-    localStorage.setItem('bible_reader_state', JSON.stringify(state));
-  }, [pickerStep, selectedBook, selectedChapter, selectedVerses, primaryVersion, comparisonVersion, isComparing, currentReference, primaryText, comparisonText]);
 
   // --- LOGIC ---
+
+  // Self-Healing Effect: If we are in reading mode but text is missing (persistence error), reload it.
+  // Self-Healing Effect: DISABLED to prevent loops. Relying on explicit UI Retry.
+  /*
+  useEffect(() => {
+    if (pickerStep === 'reading' && !primaryText && selectedBook && selectedChapter && !isLoading) {
+      // console.log("Restoring blank state...", selectedBook.name, selectedChapter);
+      loadBibleChapter(selectedBook, selectedChapter, primaryVersion);
+    }
+  }, [pickerStep, primaryText, selectedBook, selectedChapter, primaryVersion, isLoading]);
+  */
 
   const handleBookClick = (book: typeof BIBLE_BOOKS[0]) => {
     setSelectedBook(book);
@@ -170,9 +143,8 @@ export const BibleReader: React.FC<BibleReaderProps> = ({ textSettings, onNaviga
   };
 
   const handleChapterClick = (chapter: number) => {
-    setSelectedChapter(chapter);
-    setPickerStep('verses');
-    setSelectedVerses([]);
+    if (!selectedBook) return;
+    loadBibleChapter(selectedBook, chapter, primaryVersion);
   };
 
   const handleVerseToggle = (verse: number) => {
@@ -702,8 +674,19 @@ export const BibleReader: React.FC<BibleReaderProps> = ({ textSettings, onNaviga
                       <h3 className="font-bold text-lg text-[var(--text-primary)]">
                         {selectedBook.name} {selectedChapter}
                       </h3>
-                      <Button onClick={() => loadReading()} disabled={selectedVerses.length === 0} className="animate-bounce shadow-lg">
-                        Leer Selección ({selectedVerses.length}) <ArrowRight className="w-4 h-4 ml-2" />
+                      <Button
+                        onClick={() => {
+                          // Change: Load full chapter context ("Browse Mode") instead of isolated ("Reading")
+                          // This satisfies "predispose la lectura en la biblia en general"
+                          if (selectedBook && selectedChapter) {
+                            setPickerStep('browse');
+                            loadBrowseChapter(selectedBook, selectedChapter);
+                          }
+                        }}
+                        disabled={selectedVerses.length === 0}
+                        className="animate-bounce shadow-lg"
+                      >
+                        Leer en Contexto ({selectedVerses.length}) <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
                     <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3 overflow-y-auto pb-10">
@@ -743,6 +726,16 @@ export const BibleReader: React.FC<BibleReaderProps> = ({ textSettings, onNaviga
 
                 {isLoading && !primaryText ? (
                   <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-color)]"></div></div>
+                ) : !primaryText ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-center opacity-70">
+                    <AlertCircle className="w-10 h-10 text-red-500 mb-4" />
+                    <p className="mb-4 font-bold text-[var(--text-primary)]">No se pudo cargar el texto</p>
+                    <Button onClick={() => {
+                      if (selectedBook && selectedChapter) loadBibleChapter(selectedBook, selectedChapter, primaryVersion);
+                    }} variant="outline">
+                      <RefreshCw className="w-4 h-4 mr-2" /> Reintentar
+                    </Button>
+                  </div>
                 ) : (
                   <p
                     className="font-reading text-lg md:text-xl leading-relaxed text-[var(--text-primary)] text-justify"

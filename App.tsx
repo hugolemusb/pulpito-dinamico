@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { LanguageProvider, useTranslation } from './context/LanguageContext';
 import { Layout } from './components/Layout';
+import { PersistenceProvider } from './context/PersistenceContext';
 import { SermonEditor } from './components/SermonEditor';
 import { Dashboard } from './components/Dashboard';
 import { BibleSearch } from './components/BibleSearch';
@@ -13,6 +14,7 @@ import { Login } from './components/Login';
 import { Teleprompter } from './components/Teleprompter';
 import { InfografiaSermon } from './components/InfografiaSermon';
 import { BibleMemoryApp } from './components/BibleMemoryApp';
+import { NotesView } from './components/NotesView';
 import { Theme, ViewState, UserProfile, TimerState, TextSettings, AuthState } from './types';
 
 // Mock User Profile - Datos vacíos para permitir fallback al nombre del predicador del sermón
@@ -40,6 +42,8 @@ function AppContent() {
     lineHeight: 1.6,
     maxWidth: 100
   });
+
+
 
   // Check session on mount
   useEffect(() => {
@@ -150,6 +154,8 @@ function AppContent() {
           textSettings={textSettings}
           onOpenTeleprompter={() => handleNavigate('teleprompter')}
         />;
+      case 'notes':
+        return <NotesView />;
       case 'teleprompter':
         const teleprompterType = (localStorage.getItem('teleprompter_content_type') || 'sermon') as 'sermon' | 'study' | 'dictionary';
         return <Teleprompter onBack={() => handleNavigate('editor')} contentType={teleprompterType} />;
@@ -198,7 +204,9 @@ function AppContent() {
 function App() {
   return (
     <LanguageProvider>
-      <AppContent />
+      <PersistenceProvider>
+        <AppContent />
+      </PersistenceProvider>
     </LanguageProvider>
   );
 }

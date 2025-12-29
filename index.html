@@ -173,15 +173,13 @@
 <body>
   <div id="root"></div>
   <script>
+    // EMERGENCY SW KILLER
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('SW registrado: ', registration);
-          })
-          .catch(registrationError => {
-            console.log('SW error: ', registrationError);
-          });
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log("Service Worker Desregistrado FORZOSAMENTE para limpiar caché.");
+        }
       });
     }
   </script>

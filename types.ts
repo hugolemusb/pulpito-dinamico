@@ -118,6 +118,12 @@ export interface SearchResult {
     title: string;
     psychologicalConcept: string;
     content: string;
+    practicalApplication?: string[]; // Dynamic questions
+    illustration?: {
+      content: string;
+      source: string;
+      type: 'quote' | 'story' | 'outline';
+    };
   };
 }
 
@@ -171,7 +177,7 @@ export interface TimerState {
   totalDuration: number;
 }
 
-export type ViewState = 'dashboard' | 'search' | 'editor' | 'bible' | 'library' | 'teleprompter' | 'calendar' | 'infografia' | 'memory';
+export type ViewState = 'dashboard' | 'search' | 'editor' | 'bible' | 'library' | 'teleprompter' | 'calendar' | 'infografia' | 'memory' | 'notes';
 
 export type AIProvider = 'gemini' | 'external';
 

@@ -968,6 +968,9 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                                 {isRefining ? 'Refinando con IA...' : 'Refinar Destacados (IA)'}
                             </button>
                         </div>
+                        <p className="text-xs text-blue-800 bg-blue-50 border border-blue-100 p-2 rounded-lg italic mt-2 text-center md:text-right w-full shadow-sm">
+                            Marca frases solo en destacado con color o letras en colores en Púlpito como ayuda memoria; el resto es obra del Espíritu Santo.
+                        </p>
                     </div>
                 </div>
 
