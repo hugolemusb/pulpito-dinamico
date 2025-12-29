@@ -56,9 +56,9 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
     const [isRefining, setIsRefining] = useState(false); // Nuevo estado para feedback visual
     const [lastExtractedContent, setLastExtractedContent] = useState(() => propSermonData?.infographicData?.lastExtractedContent || ''); // Para detectar cambios
 
-    // History for Undo/Redo
-    const [actionWordsHistory, setActionWordsHistory] = useState<string[][]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
+    const [actionWordsHistory, setActionWordsHistory] = useState<string[][]>([]);
+    const [refreshIndex, setRefreshIndex] = useState(0);
 
     // Cargar desde localStorage si no hay props
     React.useEffect(() => {
@@ -494,14 +494,17 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
             }
 
             // 2. Refinar con IA para obtener frases coherentes y bíblicas
-            // Pass a random seed to get variations
-            const variationSeed = Date.now();
+            // Pass a sequential seed based on refresh count to FORCE different modes (Stories -> Theology -> Metaphor)
+            const seed = refreshIndex;
             const refinedPhrases = await refineHighlightsWithContext(
                 highlighted,
                 { title: sermonTitle, mainIdea: mainIdea },
                 undefined,
-                variationSeed
+                seed
             );
+
+            // Increment refresh index to ensure next click gets next mode
+            setRefreshIndex(prev => prev + 1);
 
             // 3. Combinar resultados priorizando SIEMPRE los originales visuales
             // El usuario quiere: 1. Visuales originales -> 2. Creatividad IA
