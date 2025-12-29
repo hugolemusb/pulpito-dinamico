@@ -503,13 +503,16 @@ export const InfografiaSermon: React.FC<InfografiaSermonProps> = ({ sermonData: 
                 variationSeed
             );
 
-            // 3. Actualizar estado e historial
-            const newInfo = { ...extractedInfo, actionWords: refinedPhrases };
+            // 3. Combinar resultados priorizando SIEMPRE los originales visuales
+            // El usuario quiere: 1. Visuales originales -> 2. Creatividad IA
+            const combinedWords = [...new Set([...highlighted, ...refinedPhrases])].slice(0, 10);
+
+            const newInfo = { ...extractedInfo, actionWords: combinedWords };
             setExtractedInfo(newInfo);
 
             setActionWordsHistory(prev => {
                 const newHistory = prev.slice(0, historyIndex + 1);
-                return [...newHistory, refinedPhrases];
+                return [...newHistory, combinedWords];
             });
             setHistoryIndex(prev => prev + 1);
 
