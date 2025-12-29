@@ -732,10 +732,17 @@ export const refineHighlightsWithContext = async (
     TAREA (INTENTO #${variationSeed}):
     El usuario ya tiene los términos originales. TU TAREA ES GENERAR SOLO LAS VARIACIONES CREATIVAS Y PROFUNDAS.
     
+    MODO DE GENERACIÓN OBLIGATORIO (Rotación por intento):
+    ${(variationSeed || 0) % 3 === 0 ?
+      "👉 ENFOQUE: HISTORIAS Y ANTIGUO TESTAMENTO. (Ej: 'La valentía de David', 'La fe de Abraham', 'El fuego de Elías'). Evita conceptos abstractos, dame NOMBRES y SITUACIONES." :
+      (variationSeed || 0) % 3 === 1 ?
+        "👉 ENFOQUE: TEOLOGÍA Y NUEVO TESTAMENTO. (Ej: 'Justificación por Fe', 'Gracia sobre Gracia', 'El Verbo hecho carne'). Usa lenguaje doctrinal y cristocéntrico." :
+        "👉 ENFOQUE: METÁFORAS Y APLICACIÓN PRÁCTICA. (Ej: 'Ancla del alma', 'Luz en la oscuridad', 'Caminar sobre las aguas'). Usa lenguaje poético y visual."
+    }
+    
     ESTRUCTURA DE RESPUESTA:
-    - NO incluyas el término original exacto en la respuesta.
-    - Para cada término destacado, genera una "CONEXIÓN BÍBLICA VISUAL" potente.
-    - SIEMPRE busca ángulos diferentes si el intento cambia.
+    - NO incluyas el término original exacto.
+    - Sigue ESTRICTAMENTE el ENFOQUE asignado arriba.
     
     ${variationInstruction}
     
