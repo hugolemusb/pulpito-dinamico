@@ -870,11 +870,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, username, onN
 
       {/* ONBOARDING OVERLAY */}
       {showOnboarding && (
-        <div className={`fixed inset-0 z-[200] ${overlayGradient} flex flex-col items-center justify-center animate-fade-out text-center px-4`} style={{ animationDelay: '3.5s', animationFillMode: 'forwards' }}>
-          <h1 className="text-5xl md:text-7xl font-serif font-black text-white mb-8 animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+        <div
+          className={`fixed top-0 left-0 h-[100svh] w-full z-[9999] ${overlayGradient} flex flex-col items-center justify-center text-center px-4 touch-none overscroll-none overflow-hidden`}
+          onTouchMove={(e) => e.preventDefault()}
+        >
+          <h1 className="text-5xl md:text-7xl font-serif font-black text-white mb-8 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] select-none">
             Ora antes de comenzar
           </h1>
-          <p className="text-blue-100/90 text-2xl font-light animate-slide-up animation-delay-500 max-w-2xl leading-relaxed">
+          <p className="text-white text-2xl font-light max-w-2xl leading-relaxed select-none">
             Prepara tu corazón para recibir lo que Dios tiene para ti.
           </p>
         </div>
