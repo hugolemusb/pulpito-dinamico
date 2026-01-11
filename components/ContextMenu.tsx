@@ -9,6 +9,7 @@ interface ContextMenuProps {
     onClose: () => void;
     onAddNote: (note: Omit<MarginNote, 'id' | 'createdAt'>) => void;
     onInsertToSermon?: (content: string) => void;
+    onAddToBibleNotes?: (text: string) => void;
     sectionId: string;
 }
 
@@ -23,7 +24,9 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     position,
     onClose,
     onAddNote,
+    onAddNote,
     onInsertToSermon,
+    onAddToBibleNotes,
     sectionId
 }) => {
     const [mode, setMode] = useState<'menu' | 'note' | 'search'>('menu');
@@ -141,10 +144,26 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                     >
                         <MessageSquarePlus className="w-4 h-4 text-blue-500" />
                         <div>
-                            <div className="text-sm font-medium text-[var(--text-primary)]">Agregar Nota</div>
+                            <div className="text-sm font-medium text-[var(--text-primary)]">Agregar Nota Margin</div>
                             <div className="text-xs text-[var(--text-secondary)]">Nota al margen para impresión</div>
                         </div>
                     </button>
+
+                    {onAddToBibleNotes && (
+                        <button
+                            onClick={() => {
+                                onAddToBibleNotes(selectedText);
+                                onClose();
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors text-left"
+                        >
+                            <BookOpen className="w-4 h-4 text-orange-500" />
+                            <div>
+                                <div className="text-sm font-medium text-[var(--text-primary)]">Copiar a Notas Bíblicas</div>
+                                <div className="text-xs text-[var(--text-secondary)]">Guardar en pestaña Biblia</div>
+                            </div>
+                        </button>
+                    )}
 
                     <button
                         onClick={handleSearch}

@@ -11,10 +11,10 @@ import { useTranslation } from '../context/LanguageContext';
 import {
   Church, Clock, RotateCcw, Play, Pause, PanelRight,
   ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, Search,
-  Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, FileText, Presentation,
+  Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, Brain, FileText, Presentation,
   Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
   Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay
+  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay, Smartphone
 } from 'lucide-react';
 
 interface SermonEditorProps {
@@ -182,6 +182,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [visualBgColor, setVisualBgColor] = useState<string>('#000000');
   const [imageFilter, setImageFilter] = useState<string>('');
   const [isVisualLoading, setIsVisualLoading] = useState(false);
+  const [visualFormat, setVisualFormat] = useState<'video' | 'square' | 'story'>('video');
   const [placedIcons, setPlacedIcons] = useState<{ id: string, emoji: string }[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -373,9 +374,35 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
   };
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) {
+      // Check for tap/selection even without much movement
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim().length > 1) {
+        // It's a valid selection, handle it as a context menu trigger
+        // We need a mock mouse event pos or use the last touch pos
+        const touch = touchStart || { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+        setContextMenu({
+          show: true,
+          selectedText: selection.toString().trim(),
+          position: { x: touch.x, y: touch.y - 50 } // Show slightly above finger
+        });
+        return;
+      }
+      return;
+    }
+
+    // Existing swipe logic...
     const selection = window.getSelection();
-    if (selection && selection.toString().length > 0) return;
+    if (selection && selection.toString().length > 0) {
+      // Selection exists after a move?
+      setContextMenu({
+        show: true,
+        selectedText: selection.toString().trim(),
+        position: { x: touchEnd.x, y: touchEnd.y - 50 }
+      });
+      return;
+    }
+
     const xDistance = touchStart.x - touchEnd.x;
     const yDistance = touchStart.y - touchEnd.y;
     if (Math.abs(yDistance) > 30) return;
@@ -1074,6 +1101,21 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       ? `<div style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px;"><h3>REFERENCIAS DE APOYO</h3><p><em>${crossRefs.map(r => r.ref).join(', ')}</em></p></div>`
       : '';
 
+    if (sermon.memoryVerses && sermon.memoryVerses.length > 0) {
+      printWindow.document.write(`
+          <div class="section">
+            <h2>Ayuda Memoria - Entrenador</h2>
+            <ul>
+              ${sermon.memoryVerses.map((v: any) => `
+                <li>
+                  <strong>${v.reference}</strong>: "${v.text}"
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `);
+    }
+
     printWindow.document.write(`<html><head><title>${sermon.title}</title><style>body { font-family: 'Times New Roman', serif; padding: 40px; color: #000; background: #fff; } h1 { text-align: center; font-size: 24pt; margin-bottom: 20px; text-transform: uppercase; } table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; } td { padding: 5px; border-bottom: 1px solid #ccc; vertical-align: top; } h3 { border-bottom: 1px solid #000; margin-top: 20px; padding-bottom: 5px; font-size: 14pt; font-weight: bold; } p { line-height: 1.5; margin-bottom: 10px; font-size: 12pt; }</style></head><body>${contentHtml}${refsHtml}<script>window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); }</script></body></html>`);
     printWindow.document.close();
   };
@@ -1335,13 +1377,12 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               <Button variant="ghost" size="icon" onClick={() => setShowConfigModal(true)}><Settings className="w-6 h-6" /></Button>
             </div>
 
+            {/* Moved Teleprompter here for visibility */}
+            {onOpenTeleprompter && (
+              <Button variant="ghost" size="icon" onClick={onOpenTeleprompter} title="Live / Teleprompter" className="hidden sm:inline-flex text-green-600 hover:bg-green-50"><MonitorPlay className="w-5 h-5" /></Button>
+            )}
+
             <div className="hidden lg:flex gap-1 ml-2 border-l border-[var(--border-color)] pl-2">
-              {/* TELEPROMPTER BUTTON */}
-              {onOpenTeleprompter && (
-                <Button variant="outline" size="icon" onClick={onOpenTeleprompter} title="Teleprompter" className="text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300">
-                  <MonitorPlay className="w-4 h-4" />
-                </Button>
-              )}
 
               <Button variant="outline" size="icon" onClick={downloadWord} title={t('export.word')}><FileText className="w-4 h-4" /></Button>
               <Button variant="outline" size="icon" onClick={downloadTXT} title={t('export.txt')}><FileType className="w-4 h-4" /></Button>
@@ -1703,6 +1744,33 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                 {/* VISUAL TAB */}
                 {rightTab === 'visual' && (
                   <div className="space-y-6">
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        size="sm"
+                        variant={visualFormat === 'video' ? 'primary' : 'outline'}
+                        onClick={() => setVisualFormat('video')}
+                        className="flex-1"
+                      >
+                        <MonitorPlay className="w-4 h-4 mr-1" /> 16:9
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={visualFormat === 'square' ? 'primary' : 'outline'}
+                        onClick={() => setVisualFormat('square')}
+                        className="flex-1"
+                      >
+                        <Square className="w-4 h-4 mr-1" /> 1:1
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={visualFormat === 'story' ? 'primary' : 'outline'}
+                        onClick={() => setVisualFormat('story')}
+                        className="flex-1"
+                      >
+                        <Smartphone className="w-4 h-4 mr-1" /> 9:16
+                      </Button>
+                    </div>
+
                     <div className="p-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white shadow-lg text-center">
                       <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-80" />
                       <h3 className="font-bold text-sm">Estudio Creativo</h3>
@@ -1740,8 +1808,42 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                     )}
 
                     <div className="border-t border-[var(--border-color)] pt-4">
-                      <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-2">Editor de Slide</label>
-                      <div ref={previewRef} className="aspect-video bg-black rounded-lg overflow-hidden relative shadow-md group">
+
+                      {/* FORMAT SELECTOR */}
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-xs font-bold uppercase text-[var(--text-secondary)]">Formato</label>
+                        <div className="flex bg-[var(--bg-primary)] rounded-lg p-1 border border-[var(--border-color)]">
+                          <button
+                            onClick={() => setVisualFormat('video')}
+                            className={`px-3 py-1 text-[10px] rounded-md transition-all flex items-center gap-1 ${visualFormat === 'video' ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            title="Presentación (16:9)"
+                          >
+                            <MonitorPlay className="w-3 h-3" /> 16:9
+                          </button>
+                          <button
+                            onClick={() => setVisualFormat('square')}
+                            className={`px-3 py-1 text-[10px] rounded-md transition-all flex items-center gap-1 ${visualFormat === 'square' ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            title="Post (1:1)"
+                          >
+                            <ImageIcon className="w-3 h-3" /> 1:1
+                          </button>
+                          <button
+                            onClick={() => setVisualFormat('story')}
+                            className={`px-3 py-1 text-[10px] rounded-md transition-all flex items-center gap-1 ${visualFormat === 'story' ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                            title="Historia (9:16)"
+                          >
+                            <Smartphone className="w-3 h-3" /> 9:16
+                          </button>
+                        </div>
+                      </div>
+
+                      <div
+                        ref={previewRef}
+                        className={`bg-black rounded-lg overflow-hidden relative shadow-md group transition-all duration-300 mx-auto ${visualFormat === 'video' ? 'aspect-video w-full' :
+                          visualFormat === 'square' ? 'aspect-square w-full max-w-[300px]' :
+                            'aspect-[9/16] w-full max-w-[200px]'
+                          }`}
+                      >
                         {selectedImage ? (
                           <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" style={{ filter: IMAGE_FILTERS[imageFilter as keyof typeof IMAGE_FILTERS]?.style }} />
                         ) : (
@@ -2225,7 +2327,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           position={contextMenu.position}
           onClose={() => setContextMenu(prev => ({ ...prev, show: false }))}
           onAddNote={handleAddMarginNote}
+          onAddNote={handleAddMarginNote}
           onInsertToSermon={handleInsertFromContextMenu}
+          onAddToBibleNotes={(text) => {
+            setSermon(prev => ({ ...prev, bibleNotes: (prev.bibleNotes || '') + '\n\n• ' + text }));
+            alert("Texto añadido a Notas Bíblicas");
+            setRightTab('bible');
+            if (!rightSidebarOpen) setRightSidebarOpen(true);
+          }}
           sectionId={activeSectionId}
         />
       )}

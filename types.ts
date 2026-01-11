@@ -45,6 +45,15 @@ export interface MarginNote {
   createdAt: number;
 }
 
+export interface MemoryVerse {
+  id: string;
+  reference: string;
+  text: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  lastPracticed?: number;
+  tags?: string[];
+}
+
 export interface Sermon {
   id: string;
   title: string;
@@ -66,6 +75,7 @@ export interface Sermon {
   };
   sections: SermonSection[];
   marginNotes?: MarginNote[];
+  memoryVerses?: MemoryVerse[];
   bibleNotes?: string;
   announcements?: string;
   createdAt: number;
@@ -171,7 +181,7 @@ export interface TimerState {
   totalDuration: number;
 }
 
-export type ViewState = 'dashboard' | 'search' | 'editor' | 'bible' | 'library' | 'teleprompter' | 'calendar' | 'infografia';
+export type ViewState = 'dashboard' | 'search' | 'editor' | 'bible' | 'library' | 'teleprompter' | 'calendar' | 'infografia' | 'memory';
 
 export type AIProvider = 'gemini' | 'external';
 

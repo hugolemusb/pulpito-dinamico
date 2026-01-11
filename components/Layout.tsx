@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { Theme, ViewState, AIConfig, AIProvider, TextSettings, Language } from '../types';
-import { Home, Search, PenTool, Settings, X, Globe, Cpu, Zap, Box, Palette, Book, Type, LogOut, Highlighter, Underline, Smile, Star, MoreHorizontal, RotateCcw, Check, AlignLeft, AlignCenter, AlignRight, AlignJustify, CaseUpper, CaseLower, CaseSensitive, Type as TypeIcon, Ban, Bold, Italic, Strikethrough, List, ListOrdered, Table, LayoutTemplate, Trash2, User, Camera, WifiOff, Wifi, Library, Minus, Plus, Scaling, Undo, Redo, Calendar, LayoutGrid } from 'lucide-react';
+import { Home, Search, PenTool, Settings, X, Globe, Cpu, Zap, Box, Palette, Book, Type, LogOut, Highlighter, Underline, Smile, Star, MoreHorizontal, RotateCcw, Check, AlignLeft, AlignCenter, AlignRight, AlignJustify, CaseUpper, CaseLower, CaseSensitive, Type as TypeIcon, Ban, Bold, Italic, Strikethrough, List, ListOrdered, Table, LayoutTemplate, Trash2, User, Camera, WifiOff, Wifi, Library, Minus, Plus, Scaling, Undo, Redo, Calendar, LayoutGrid, Brain } from 'lucide-react';
 import { Button } from './Button';
 import { validateAIConfig } from '../services/geminiService';
 import { useTranslation } from '../context/LanguageContext';
@@ -401,6 +401,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, theme, onToggleTheme, 
           <NavItem view="calendar" icon={Calendar} label="Agenda" />
           <NavItem view="editor" icon={PenTool} label={t('nav.editor')} />
           <NavItem view="infografia" icon={LayoutGrid} label="Infografía" />
+          <NavItem view="memory" icon={Brain} label="Ayuda Memoria" />
         </div>
 
         {/* Bottom Buttons - Always Visible */}

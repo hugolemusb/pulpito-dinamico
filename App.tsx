@@ -12,6 +12,7 @@ import { CalendarView } from './components/CalendarView';
 import { Login } from './components/Login';
 import { Teleprompter } from './components/Teleprompter';
 import { InfografiaSermon } from './components/InfografiaSermon';
+import { MemoryAid } from './components/MemoryAid';
 import { Theme, ViewState, UserProfile, TimerState, TextSettings, AuthState } from './types';
 
 // Mock User Profile - Datos vacíos para permitir fallback al nombre del predicador del sermón
