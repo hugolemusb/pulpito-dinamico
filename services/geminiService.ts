@@ -597,7 +597,44 @@ export const getCrossReferences = async (verse: string, bypassCache: boolean = f
 export const searchSemanticInsights = async (query: string): Promise<SearchResult | null> => {
   const cached = getFromCache(CACHE_KEYS.SEARCH, query);
   if (cached) return cached;
-  const prompt = `Analiza consulta: "${query}". JSON: { "verses": [{"ref":"", "version":"", "text":"", "tags":[]}], "insight": {"title":"", "psychologicalConcept":"", "content":""} }.`;
+  const prompt = `Genera un ESTUDIO BÍBLICO PROFUNDO sobre: "${query}".
+
+ESTRUCTURA JSON REQUERIDA:
+{
+  "verses": [{"ref":"Referencia completa","version":"RVR1960","text":"Texto completo","tags":["tema1","tema2"]}],
+  "insight": {"title":"Título general","psychologicalConcept":"Concepto clave","content":"Resumen ejecutivo"},
+  "biblicalFoundation": "Análisis exegético profundo con referencias cruzadas AT y NT. Explica el fundamento teológico sólido con múltiples pasajes que respaldan el tema.",
+  "psychologicalInsight": "Perspectiva psicológica SUSTENTADA EN CRISTO. No psicología secular sino cómo Cristo redime y transforma la mente/corazón en relación a ${query}. Integración fe-psicología cristocéntrica.",
+  "practicalApplications": [
+    "Primera aplicación práctica concreta y específica",
+    "Segunda aplicación práctica diferente y complementaria"
+  ],
+  "theologicalQuote": {
+    "text": "Metáfora profunda o PARÁBOLA ORIGINAL similar a las de Jesús que ilustre ${query}",
+    "author": "Reflexión Pastoral / Padre de Iglesia / Teólogo",
+    "context": "Breve explicación de cómo esta metáfora ilumina el tema"
+  },
+  "popularQuotes": [
+    {
+      "quote": "Cita memorable de teólogo o pastor reconocido relacionada con ${query}",
+      "author": "Nombre del autor (ej: C.S. Lewis, John Wesley, Charles Spurgeon)",
+      "source": "Libro o contexto de la cita"
+    },
+    {
+      "quote": "Segunda cita memorable de otro líder cristiano sobre ${query}",
+      "author": "Nombre del autor",
+      "source": "Libro o contexto de la cita"
+    }
+  ]
+}
+
+CRÍTICO: 
+- Profundidad académica pero lenguaje pastoral
+- EXACTAMENTE 2 aplicaciones prácticas
+- EXACTAMENTE 2 citas populares de líderes cristianos reconocidos
+- Cita teológica debe ser metafórica/parabólica, no meramente doctrinal
+- Todo centrado en Cristo, no psicología humanista`;
+
   try {
     const text = await generateUnifiedContent(prompt, undefined, true);
     if (text) {

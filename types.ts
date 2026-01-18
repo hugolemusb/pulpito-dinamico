@@ -50,6 +50,7 @@ export interface MemoryVerse {
   reference: string;
   text: string;
   difficulty: 'easy' | 'medium' | 'hard';
+  createdAt?: number;
   lastPracticed?: number;
   tags?: string[];
 }
@@ -129,6 +130,21 @@ export interface SearchResult {
     psychologicalConcept: string;
     content: string;
   };
+  biblicalFoundation?: string;
+  psychologicalInsight?: string;
+  historicalContext?: string;
+  ancientModernComparison?: string;
+  practicalApplications?: string[];
+  theologicalQuote?: {
+    text: string;
+    author: string;
+    context: string;
+  };
+  popularQuotes?: {
+    quote: string;
+    author: string;
+    source: string;
+  }[];
 }
 
 export interface DictionaryResult {

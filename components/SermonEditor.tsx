@@ -14,7 +14,7 @@ import {
   Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, Brain, FileText, Presentation,
   Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
   Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay, Smartphone
+  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay, Smartphone, Square
 } from 'lucide-react';
 
 interface SermonEditorProps {
@@ -803,6 +803,48 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     }
   };
 
+  const handleClearSermon = () => {
+    const confirmed = window.confirm(
+      '¿Estás seguro que deseas limpiar todo el sermón actual?\n\n' +
+      'Esta acción eliminará:\n' +
+      '• Toda la configuración (título, predicador, versículo)\n' +
+      '• Todo el contenido de las secciones\n' +
+      '• Notas al margen\n' +
+      '• Historial de chat\n\n' +
+      'Esta acción NO se puede deshacer.'
+    );
+
+    if (!confirmed) return;
+
+    // Crear sermón fresco
+    const freshSermon = createFreshSermon(t);
+
+    // Actualizar estado
+    setSermon(freshSermon);
+    setActiveSectionId(freshSermon.sections[0].id);
+    setLastGeneratedVerse('');
+
+    // Limpiar estados relacionados
+    setChatHistory([]);
+    setCrossRefs([]);
+    setSearchImages([]);
+    setSelectedImage('');
+    setPlacedIcons([]);
+    setAudioPlayer({ isPlaying: false, chunks: [], currentIndex: 0, showControls: false });
+    stopAudio();
+
+    // Limpiar localStorage
+    localStorage.removeItem('current_sermon');
+
+    // Forzar actualización del editor
+    setEditorVersion(prev => prev + 1);
+
+    // Mostrar banner de bienvenida
+    setShowOnboarding(true);
+
+    alert('✓ Sermón limpiado exitosamente. Puedes comenzar uno nuevo.');
+  };
+
   const loadCrossRefs = async (force: boolean = false) => {
     if (!sermon.mainVerse) return;
     setIsLoadingRefs(true);
@@ -1014,6 +1056,30 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   };
 
   const handleSaveToCalendar = () => {
+    const current = sermonRef.current;
+
+    // Validar que haya contenido mínimo antes de guardar
+    const hasTitle = current.title && current.title !== 'Nuevo Sermón';
+    const hasVerse = current.mainVerse && current.mainVerse.length > 0;
+    const hasContent = current.sections.some(s => {
+      const strippedContent = s.content.replace(/<[^>]*>/g, '').trim();
+      return strippedContent.length > 20;
+    });
+
+    // Si no hay información suficiente, mostrar error
+    if (!hasTitle && !hasVerse && !hasContent) {
+      alert(
+        '⚠️ No se puede guardar un sermón vacío\\n\\n' +
+        'Por favor, agrega al menos uno de los siguientes:\\n' +
+        '• Título del sermón\\n' +
+        '• Versículo base\\n' +
+        '• Contenido en alguna sección (mínimo 20 caracteres)\\n\\n' +
+        'Configura tu sermón antes de guardarlo en el calendario.'
+      );
+      return;
+    }
+
+    // Si hay algún contenido mínimo, proceder a guardar
     handleSaveToLibrary();
   };
 
@@ -1373,6 +1439,8 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
             <Button variant="ghost" size="icon" onClick={handleSaveToCalendar} title="Guardar en Calendario" className="hidden sm:inline-flex"><CalendarIcon className="w-5 h-5 text-green-600" /></Button>
             <Button variant="ghost" size="icon" onClick={handleShowStorageDialog} title="Guardar como Archivo" className="hidden sm:inline-flex"><Cloud className="w-5 h-5 text-purple-600" /></Button>
 
+            <Button variant="ghost" size="icon" onClick={handleClearSermon} title="Limpiar Sermón" className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"><Eraser className="w-5 h-5" /></Button>
+
             <div className="sm:hidden">
               <Button variant="ghost" size="icon" onClick={() => setShowConfigModal(true)}><Settings className="w-6 h-6" /></Button>
             </div>
@@ -1402,7 +1470,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           <aside className={`${leftSidebarOpen ? 'w-[280px] translate-x-0' : 'w-[0px] -translate-x-full md:w-[0px] md:translate-x-0'} absolute md:relative z-30 h-full transition-all duration-300 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col overflow-hidden shadow-2xl md:shadow-none`}>
             <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between shrink-0">
               <span className="font-bold text-xs uppercase tracking-wider text-[var(--text-secondary)]">{t('editor.structure')}</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLeftSidebarOpen(false)}><ChevronLeft className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setLeftSidebarOpen(false)} title="Ocultar estructura"><ChevronLeft className="w-6 h-6" /></Button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {sermon.sections.map((section) => (
@@ -1415,7 +1483,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       setLeftSidebarOpen(false);
                     }
                   }}
-                  className={`group p-3 rounded-lg border-l-4 ${getBorderColor(section.type)} border border-transparent cursor-pointer transition-all ${activeSectionId === section.id ? 'bg-[var(--bg-tertiary)] shadow-sm' : 'hover:bg-[var(--bg-tertiary)] hover:border-transparent'}`}
+                  className={`group p-3 rounded-lg border-l-4 ${getBorderColor(section.type)} cursor-pointer transition-all ${activeSectionId === section.id ? 'border-2 border-[var(--accent-color)]' : 'border border-transparent hover:bg-[var(--bg-tertiary)]'}`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -1443,7 +1511,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
           {!leftSidebarOpen && (
             <div className="absolute left-0 top-4 z-10">
-              <Button variant="secondary" size="icon" onClick={() => setLeftSidebarOpen(true)} className="rounded-l-none shadow-md border-l-0"><ChevronRight className="w-4 h-4" /></Button>
+              <Button variant="secondary" size="icon" onClick={() => setLeftSidebarOpen(true)} className="rounded-l-none shadow-lg border-l-0 h-16 w-10 bg-blue-600 hover:bg-blue-700 text-white border-blue-600" title="Mostrar estructura"><ChevronRight className="w-7 h-7" /></Button>
             </div>
           )}
 
@@ -1617,9 +1685,9 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               </div>
             </div>
             <div className="h-14 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between px-6 shrink-0">
-              <Button variant="ghost" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
+              <Button variant="ghost" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0} className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-blue-200 dark:border-blue-800"><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
               <span className="text-sm font-medium text-[var(--text-secondary)]">{sermon.sections.findIndex(s => s.id === activeSectionId) + 1} de {sermon.sections.length}</span>
-              <Button variant="primary" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1}>{t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button variant="ghost" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1} className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 border border-green-200 dark:border-green-800">{t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" /></Button>
             </div>
           </main>
 
@@ -2325,8 +2393,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
         <ContextMenu
           selectedText={contextMenu.selectedText}
           position={contextMenu.position}
-          onClose={() => setContextMenu(prev => ({ ...prev, show: false }))}
-          onAddNote={handleAddMarginNote}
+          onClose={() => setContextMenu({ show: false, selectedText: '', position: { x: 0, y: 0 } })}
           onAddNote={handleAddMarginNote}
           onInsertToSermon={handleInsertFromContextMenu}
           onAddToBibleNotes={(text) => {

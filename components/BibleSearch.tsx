@@ -6,6 +6,8 @@ import { searchSemanticInsights, lookupDictionaryTerm } from '../services/gemini
 import { fetchVerseText } from '../services/bibleService';
 import { SearchResult, DictionaryResult, TextSettings, Sermon, SectionType } from '../types';
 import { useTranslation } from '../context/LanguageContext';
+import { DeepStudyView } from './DeepStudyView';
+import { ContextMenu } from './ContextMenu';
 
 interface BibleSearchProps {
   textSettings?: TextSettings;
@@ -22,6 +24,45 @@ export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNaviga
   const [selectedDictVerse, setSelectedDictVerse] = useState<{ ref: string, text: string } | null>(null);
   const [isLoadingDictVerse, setIsLoadingDictVerse] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean;
+    selectedText: string;
+    position: { x: number; y: number };
+  }>({ show: false, selectedText: '', position: { x: 0, y: 0 } });
+
+  // Handle text selection (mouse)
+  const handleTextSelection = (e: React.MouseEvent) => {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    if (selectedText && selectedText.length > 1) {
+      setTimeout(() => {
+        const text = window.getSelection()?.toString().trim();
+        if (text && text.length > 1) {
+          setContextMenu({
+            show: true,
+            selectedText: text,
+            position: { x: e.clientX, y: e.clientY }
+          });
+        }
+      }, 100);
+    }
+  };
+
+  // Handle touch selection (iPad/mobile)
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    if (selectedText && selectedText.length > 1) {
+      const touch = e.changedTouches[0];
+      setContextMenu({
+        show: true,
+        selectedText,
+        position: { x: touch.clientX, y: touch.clientY - 50 }
+      });
+    }
+  };
 
   useEffect(() => {
     const savedSession = localStorage.getItem('last_study_session');
@@ -336,6 +377,8 @@ export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNaviga
         <div
           className="max-w-7xl mx-auto space-y-8 min-h-full flex flex-col"
           style={{ maxWidth: textSettings ? `${textSettings.maxWidth}%` : undefined }}
+          onMouseUp={handleTextSelection}
+          onTouchEnd={handleTouchEnd}
         >
           <div className="text-center space-y-4 pt-4">
             <h2 className="text-3xl font-serif font-bold text-[var(--text-primary)]">{activeTab === 'search' ? t('search.title') : t('search.dictionary')}</h2>
@@ -363,22 +406,9 @@ export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNaviga
                     ))}
                   </div>
                 </div>
-                <div className="bg-[var(--bg-secondary)] rounded-xl shadow-sm border border-[var(--border-color)] overflow-hidden relative transition-colors h-fit">
-                  <div className="bg-[var(--bg-tertiary)] px-6 py-4 border-b border-[var(--border-color)] flex items-center gap-2"><Brain className="w-5 h-5 text-teal-500" /><h3 className="font-semibold text-[var(--text-primary)]">{t('search.perspective')}</h3></div>
-                  <div className="p-6">
-                    <div className="mb-4"><span className="text-xs font-bold tracking-wider text-teal-600 uppercase">Concepto: {result.insight.psychologicalConcept}</span><h4 className="text-xl font-bold text-[var(--text-primary)] mt-1">{result.insight.title}</h4></div>
-                    <div
-                      className="text-[var(--text-primary)] opacity-90 leading-relaxed space-y-4 text-justify"
-                      style={{
-                        fontSize: textSettings ? `${textSettings.fontSize}px` : undefined,
-                        lineHeight: textSettings ? textSettings.lineHeight : undefined
-                      }}
-                    >
-                      <p>{result.insight.content}</p>
-                    </div>
-                    <div className="mt-6 p-5 bg-white rounded-lg border border-red-200 shadow-sm"><h5 className="text-sm font-bold text-red-800 mb-2 uppercase tracking-wide border-b border-red-100 pb-1">Aplicación Práctica</h5><p className="text-base text-red-700 font-medium leading-relaxed">Reflexiona: ¿Cómo cambia tu perspectiva al ver este problema no solo como una falla espiritual, sino como un proceso mental que Dios quiere redimir?</p></div>
-                  </div>
-                </div>
+
+                {/* Deep Study View - Componente Expandido */}
+                <DeepStudyView result={result} textSettings={textSettings} />
               </div>
             )}
             {activeTab === 'dictionary' && dictResult && (
@@ -419,6 +449,20 @@ export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNaviga
           </div>
         </div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.show && (
+        <ContextMenu
+          selectedText={contextMenu.selectedText}
+          position={contextMenu.position}
+          onClose={() => setContextMenu({ show: false, selectedText: '', position: { x: 0, y: 0 } })}
+          onAddNote={(note) => {
+            alert(`Nota guardada: "${note.noteText}"`);
+            setContextMenu({ show: false, selectedText: '', position: { x: 0, y: 0 } });
+          }}
+          sectionId={activeTab === 'search' ? 'bible-search' : 'dictionary'}
+        />
+      )}
     </div>
   );
 };

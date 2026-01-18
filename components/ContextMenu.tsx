@@ -24,7 +24,6 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     position,
     onClose,
     onAddNote,
-    onAddNote,
     onInsertToSermon,
     onAddToBibleNotes,
     sectionId
