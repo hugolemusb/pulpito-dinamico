@@ -104,8 +104,51 @@ export const getBibleVersions = (lang: Language = 'es'): BibleVersion[] => {
   return VERSIONS_BY_LANG[lang] || VERSIONS_BY_LANG['es'];
 };
 
+// --- VERSE CACHE SYSTEM ---
+const VERSE_CACHE_KEY = 'bible_verse_cache';
+const MAX_CACHE_SIZE = 100;
+
+const getCachedVerse = (reference: string, version: string): string | null => {
+  try {
+    const cache = localStorage.getItem(VERSE_CACHE_KEY);
+    if (!cache) return null;
+    const parsed = JSON.parse(cache);
+    const key = `${reference}_${version}`;
+    return parsed[key] || null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const saveVerseToCache = (reference: string, version: string, text: string) => {
+  try {
+    const cache = localStorage.getItem(VERSE_CACHE_KEY);
+    const parsed = cache ? JSON.parse(cache) : {};
+    const key = `${reference}_${version}`;
+
+    // Limit cache size
+    const keys = Object.keys(parsed);
+    if (keys.length >= MAX_CACHE_SIZE) {
+      delete parsed[keys[0]]; // Remove oldest entry
+    }
+
+    parsed[key] = text;
+    localStorage.setItem(VERSE_CACHE_KEY, JSON.stringify(parsed));
+  } catch (e) {
+    // Silent fail - cache is optional
+  }
+};
+
 export const fetchVerseText = async (reference: string, version: string, forceVariation: boolean = false): Promise<string> => {
   try {
+    // Check cache first (unless forcing variation)
+    if (!forceVariation) {
+      const cached = getCachedVerse(reference, version);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const lang = (localStorage.getItem('app_language') as Language) || 'es';
 
     // If version is generic or mismatching, default to the best for the language
@@ -135,7 +178,12 @@ export const fetchVerseText = async (reference: string, version: string, forceVa
       throw new Error("Texto no encontrado o referencia inválida.");
     }
 
-    return text.trim();
+    const cleanedText = text.trim();
+
+    // Save to cache for future use
+    saveVerseToCache(reference, version, cleanedText);
+
+    return cleanedText;
   } catch (error: any) {
     const isQuota = error.message && (error.message.includes("Cuota excedida") || error.message.includes("Quota") || error.message.includes("429"));
 

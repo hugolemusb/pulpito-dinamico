@@ -77,6 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, username, onN
   const [displayName, setDisplayName] = useState("");
   const [isDeepDiveLoading, setIsDeepDiveLoading] = useState(false);
   const [showAurora, setShowAurora] = useState(false);
+  const [verseLoadError, setVerseLoadError] = useState<string | null>(null);
 
   // VERSE KEYWORD SEARCH STATE
   const [verseSearchQuery, setVerseSearchQuery] = useState('');
@@ -279,19 +280,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, username, onN
   const pickAndLoadVerseText = async () => {
     const randomVerse = RANDOM_DEEP_DIVE_VERSES[Math.floor(Math.random() * RANDOM_DEEP_DIVE_VERSES.length)];
     setVerseQuery(randomVerse);
+    setVerseLoadError(null);
 
     try {
       const text = await fetchVerseText(randomVerse, 'RVR1960');
       setVerseText(text);
-      // Opcional: Cargar análisis automáticamente al inicio si se desea
-      // handleDeepDiveLoad(randomVerse, text); 
-    } catch (e) { console.error("Error fetching text", e); }
+    } catch (e: any) {
+      console.error("Error fetching text", e);
+      setVerseLoadError(e.message || "Error al cargar el versículo. Verifica tu conexión.");
+    }
   };
 
   const handleDeepDiveLoad = async (verse: string, preloadedText?: string) => {
     if (!verse) return;
     setIsDeepDiveLoading(true);
     setDeepDiveError(null);
+    setVerseLoadError(null);
 
     let currentText = preloadedText || verseText;
 
@@ -300,7 +304,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, username, onN
         const text = await fetchVerseText(verse, 'RVR1960');
         setVerseText(text);
         currentText = text;
-      } catch (e) { console.error("Error fetching text", e); }
+      } catch (e: any) {
+        console.error("Error fetching text", e);
+        setVerseLoadError(e.message || "Error al cargar el versículo.");
+        throw e; // Propagate to stop analysis if verse fails
+      }
     };
 
     const loadAnalysis = async () => {
@@ -313,13 +321,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, username, onN
       }
     };
 
-    const promises = [loadAnalysis()];
-    if (!preloadedText && (verse !== verseQuery || !verseText)) {
-      promises.push(loadText());
+    try {
+      const promises = [];
+      if (!preloadedText && (verse !== verseQuery || !verseText)) {
+        await loadText(); // Load text first, throw if fails
+      }
+      promises.push(loadAnalysis()); // Then load analysis
+      await Promise.all(promises);
+    } catch (e) {
+      // Error already handled in loadText/loadAnalysis
+    } finally {
+      setIsDeepDiveLoading(false);
     }
-
-    await Promise.all(promises);
-    setIsDeepDiveLoading(false);
   };
 
   // --- PICKER LOGIC ---
@@ -1249,14 +1262,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ userProfile, username, onN
               </div>
             </div>
 
-            {/* ERROR DISPLAY */}
-            {deepDiveError && (
-              <div className="p-3 bg-red-50 text-red-600 border border-red-100 rounded-lg text-xs flex items-start gap-2">
+            {/* ERROR DISPLAYS */}
+            {verseLoadError && (
+              <div className="p-3 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700 rounded-lg text-xs flex items-start gap-2 animate-fade-in">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
+                  <p className="font-bold">Error al Cargar Versículo</p>
+                  <p>{verseLoadError}</p>
+                  <button
+                    onClick={() => pickAndLoadVerseText()}
+                    className="mt-2 text-amber-800 dark:text-amber-200 underline flex items-center gap-1 hover:text-amber-900 dark:hover:text-amber-100"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Cargar otro versículo
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {deepDiveError && (
+              <div className="p-3 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-700 rounded-lg text-xs flex items-start gap-2 animate-fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex-1">
                   <p className="font-bold">Error de Análisis</p>
                   <p>{deepDiveError}</p>
-                  <button onClick={() => handleDeepDiveLoad(verseQuery)} className="mt-2 text-red-700 underline flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Reintentar</button>
+                  <button onClick={() => handleDeepDiveLoad(verseQuery)} className="mt-2 text-red-700 dark:text-red-200 underline flex items-center gap-1 hover:text-red-800 dark:hover:text-red-100"><RefreshCw className="w-3 h-3" /> Reintentar</button>
                 </div>
               </div>
             )}

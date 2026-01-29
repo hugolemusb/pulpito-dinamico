@@ -118,6 +118,8 @@ export interface SearchResult {
     title: string;
     psychologicalConcept: string;
     content: string;
+    practicalApplication?: string;
+    famousQuote?: string;
   };
 }
 

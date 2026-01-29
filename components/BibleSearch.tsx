@@ -376,7 +376,26 @@ export const BibleSearch: React.FC<BibleSearchProps> = ({ textSettings, onNaviga
                     >
                       <p>{result.insight.content}</p>
                     </div>
-                    <div className="mt-6 p-5 bg-white rounded-lg border border-red-200 shadow-sm"><h5 className="text-sm font-bold text-red-800 mb-2 uppercase tracking-wide border-b border-red-100 pb-1">Aplicación Práctica</h5><p className="text-base text-red-700 font-medium leading-relaxed">Reflexiona: ¿Cómo cambia tu perspectiva al ver este problema no solo como una falla espiritual, sino como un proceso mental que Dios quiere redimir?</p></div>
+
+                    {/* Aplicación Práctica - Dinámica */}
+                    {result.insight.practicalApplication && (
+                      <div className="mt-6 p-5 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--accent-color)]/30 shadow-sm">
+                        <h5 className="text-sm font-bold text-[var(--accent-color)] mb-2 uppercase tracking-wide border-b border-[var(--border-color)] pb-1 flex items-center gap-2">
+                          <span>🎯</span> Aplicación Práctica
+                        </h5>
+                        <p className="text-base text-[var(--text-primary)] font-medium leading-relaxed">{result.insight.practicalApplication}</p>
+                      </div>
+                    )}
+
+                    {/* Cita Famosa - Nueva Sección */}
+                    {result.insight.famousQuote && (
+                      <div className="mt-6 p-5 bg-[var(--bg-secondary)] rounded-lg border-l-4 border-[var(--accent-color)] shadow-sm">
+                        <h5 className="text-sm font-bold text-[var(--text-secondary)] mb-3 uppercase tracking-wide flex items-center gap-2">
+                          <span>💭</span> Cita Famosa
+                        </h5>
+                        <p className="text-base text-[var(--text-primary)] italic leading-relaxed">{result.insight.famousQuote}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -258,12 +258,32 @@ RECUERDA:
   }
 };
 
+// --- TIMEOUT HELPER ---
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 15000): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`⏱️ Tiempo de espera agotado (${timeoutMs / 1000}s). La API está tardando demasiado. Verifica tu conexión o intenta más tarde.`));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+};
+
 // --- UNIFIED GENERATION FUNCTION ---
 export const generateUnifiedContent = async (
   prompt: string,
   systemInstruction?: string,
   jsonMode: boolean = false,
-  temperature?: number
+  temperature?: number,
+  timeoutMs: number = 15000  // Default 15s, pero puede aumentarse para operaciones largas
 ): Promise<string> => {
 
   if (!navigator.onLine) {
@@ -295,15 +315,19 @@ export const generateUnifiedContent = async (
 
     const ai = new GoogleGenAI({ apiKey: finalApiKey });
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: finalPrompt,
-        config: {
-          systemInstruction: finalSystemInstruction,
-          responseMimeType: jsonMode ? "application/json" : "text/plain",
-          temperature: temperature ?? 0.7
-        }
-      });
+      // Apply configurable timeout
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: finalPrompt,
+          config: {
+            systemInstruction: finalSystemInstruction,
+            responseMimeType: jsonMode ? "application/json" : "text/plain",
+            temperature: temperature ?? 0.7
+          }
+        }),
+        timeoutMs  // Usar el timeout pasado como parámetro
+      );
       return response.text || "";
     } catch (error: any) {
       // Check for quota error FIRST to avoid noisy logs
@@ -342,21 +366,23 @@ export const generateUnifiedContent = async (
     messages.push({ role: 'user', content: finalPrompt });
 
     try {
-      const response = await fetch(fetchUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // FIX: Remove space after bearer token
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: config.modelId,
-          messages: messages,
-          temperature: 0.8,
-          // DeepSeek and OpenAI support json_object, but ensure safety
-          response_format: jsonMode ? { type: "json_object" } : undefined
-        })
-      });
+      // Apply configurable timeout to external API calls
+      const response = await withTimeout(
+        fetch(fetchUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: config.modelId,
+            messages: messages,
+            temperature: 0.8,
+            response_format: jsonMode ? { type: "json_object" } : undefined
+          })
+        }),
+        timeoutMs  // Usar el timeout configurable, no hardcodeado
+      );
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -441,7 +467,7 @@ export const chatWithAdvisor = async (history: { role: string, content: string }
   try {
     const prompt = message;
     const context = SYSTEM_INSTRUCTION_ADVISOR + "\nContexto anterior: " + JSON.stringify(history.slice(-2));
-    return await generateUnifiedContent(prompt, context);
+    return await generateUnifiedContent(prompt, context, false, undefined, 45000); // 45s para ayuda de secciones
   } catch (e: any) {
     return `Error: ${e.message} `;
   }
@@ -577,7 +603,8 @@ export const generateFullSermonStructure = async (verse: string, verseText: stri
     Los versículos de apoyo deben incluir la referencia y el texto citado.
   `;
   try {
-    const text = await generateUnifiedContent(prompt, undefined, true);
+    console.log('🔥 Generando sermón con timeout de 90 segundos...'); // DEBUG
+    const text = await generateUnifiedContent(prompt, undefined, true, undefined, 90000); // 90s para generación completa de sermón
     if (text) {
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
       const data = JSON.parse(cleanText);
@@ -597,7 +624,7 @@ export const getCrossReferences = async (verse: string, bypassCache: boolean = f
   const prompt = `Encuentra 3 referencias cruzadas teológicamente ricas para: "${verse}". ${variance} JSON array: [{"ref": "Libro X:Y", "text": "Texto..."}].`;
 
   try {
-    const text = await generateUnifiedContent(prompt, undefined, true);
+    const text = await generateUnifiedContent(prompt, undefined, true, undefined, 45000); // 45s para referencias cruzadas
     if (text) {
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
       const data = JSON.parse(cleanText);
@@ -611,9 +638,36 @@ export const getCrossReferences = async (verse: string, bypassCache: boolean = f
 export const searchSemanticInsights = async (query: string): Promise<SearchResult | null> => {
   const cached = getFromCache(CACHE_KEYS.SEARCH, query);
   if (cached) return cached;
-  const prompt = `Analiza consulta: "${query}". JSON: { "verses": [{"ref":"", "version":"", "text":"", "tags":[]}], "insight": {"title":"", "psychologicalConcept":"", "content":""} }.`;
+
+  const prompt = `Analiza la consulta del usuario: "${query}".
+
+Genera una respuesta en formato JSON con la siguiente estructura:
+
+{
+  "verses": [
+    {
+      "ref": "Referencia bíblica completa (ej: Juan 3:16)",
+      "version": "RVR1960",
+      "text": "Texto del versículo en español",
+      "tags": ["palabra1", "palabra2"]
+    }
+  ],
+  "insight": {
+    "title": "Título del análisis",
+    "psychologicalConcept": "Concepto psicológico relacionado",
+    "content": "Desarrollo profundo del tema (3-4 párrafos)",
+    "practicalApplication": "Aplicación práctica ESPECÍFICA para este tema (2-3 líneas concretas que el creyente puede aplicar HOY en su vida diaria)",
+    "famousQuote": "Una cita teológica, filosófica o de un teólogo reconocido relacionada al tema, incluyendo autor. Formato: 'Texto de la cita' - Autor"
+  }
+}
+
+IMPORTANTE:
+- La aplicación práctica debe ser ESPECÍFICA al tema "${query}", no genérica
+- La cita famosa debe ser relevante y de un autor reconocido (teólogo, filósofo cristiano, padre de la iglesia, etc.)
+- Responde SOLO con el JSON, sin texto adicional`;
+
   try {
-    const text = await generateUnifiedContent(prompt, undefined, true);
+    const text = await generateUnifiedContent(prompt, undefined, true, undefined, 45000); // 45s para búsqueda semántica
     if (text) {
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
       const data = JSON.parse(cleanText);
@@ -643,7 +697,8 @@ export const lookupDictionaryTerm = async (term: string): Promise<DictionaryResu
 export const getDeepDiveAnalysis = async (verse: string): Promise<any | null> => {
   const prompt = `Micro-exégesis de: "${verse}". JSON: { "meaning":"", "context":"", "application":"" }.`;
   try {
-    const text = await generateUnifiedContent(prompt, undefined, true);
+    console.log('📖 Analizando versículo con timeout de 60 segundos...'); // DEBUG
+    const text = await generateUnifiedContent(prompt, undefined, true, undefined, 60000); // 60s para análisis profundo (estudio bíblico)
     if (!text) return null;
     const cleanText = text.replace(/```json/g, '').replace(/```/g, '');
     return JSON.parse(cleanText);
@@ -690,7 +745,7 @@ export const searchVersesByTheme = async (theme: string): Promise<ThemeVerseResu
   `;
 
   try {
-    const text = await generateUnifiedContent(prompt, undefined, true);
+    const text = await generateUnifiedContent(prompt, undefined, true, undefined, 45000); // 45s para búsqueda por tema
     if (text) {
       const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const data = JSON.parse(cleanText);

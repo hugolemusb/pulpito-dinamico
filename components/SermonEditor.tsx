@@ -13,8 +13,9 @@ import {
   Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, FileText, Presentation,
   Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
   Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay
+  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay, Radio
 } from 'lucide-react';
+// import { LiveStreamConfig } from './features/LiveStreamConfig'; // TODO: Archivo faltante
 
 interface SermonEditorProps {
   theme: Theme;
@@ -162,6 +163,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
   const [lastGeneratedVerse, setLastGeneratedVerse] = useState<string>(sermon.mainVerse || '');
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showLiveStreamModal, setShowLiveStreamModal] = useState(false); // NUEVO: Estado para modal de streaming
   const [showOnboarding, setShowOnboarding] = useState(false); // RESTORED: Estado para la tarjeta de bienvenida
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
@@ -193,6 +195,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [isLoadingVerseText, setIsLoadingVerseText] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showStorageDialog, setShowStorageDialog] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // VERSE PICKER STATE
   const [versePickerStep, setVersePickerStep] = useState<'none' | 'books' | 'chapters' | 'verses'>('none');
@@ -775,6 +778,15 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     }
   };
 
+  // Guardar solo metadatos (título, fecha, speaker, etc) SIN regenerar estructura
+  const handleSaveMetadataOnly = () => {
+    setShowConfigModal(false);
+    setShowOnboarding(false);
+    // Guardar automáticamente en localStorage
+    localStorage.setItem('current_sermon', JSON.stringify(sermonRef.current));
+    alert("Datos del sermón actualizados correctamente.");
+  };
+
   const loadCrossRefs = async (force: boolean = false) => {
     if (!sermon.mainVerse) return;
     setIsLoadingRefs(true);
@@ -1287,13 +1299,24 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                 <Settings className="w-3 h-3" />
                 {t('editor.config')}
               </button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLiveStreamModal(true)}
+                className="gap-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 font-bold animate-in fade-in zoom-in"
+                title="Configurar Transmisión"
+              >
+                <Radio size={18} />
+                <span className="hidden sm:inline">Transmitir</span>
+              </Button>
             </div>
           </div>
 
           <div className="flex items-center bg-black/20 dark:bg-black/40 rounded-xl px-4 py-1.5 gap-4 shadow-inner border border-[var(--border-color)] mx-auto transition-transform hover:scale-105 backdrop-blur-sm">
             <button onClick={onResetTimerOnly} className="p-1.5 rounded-full hover:bg-white/10 text-[var(--text-secondary)] transition-colors" title="Resetear Timer"><RotateCcw className="w-5 h-5" /></button>
             <div className={`font-mono text-4xl w-[160px] text-center tracking-widest transition-all duration-500 drop-shadow-md ${getTimerColor()}`}>{formatTime(timerState.timeLeft)}</div>
-            <button onClick={onToggleTimer} className={`p-2 rounded-full text-white transition-colors shadow-lg active:scale-95 ${timerState.isRunning ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}`}>
+            <button onClick={onToggleTimer} title={timerState.isRunning ? 'Pausar Timer' : 'Iniciar Timer'} className={`p-2 rounded-full text-white transition-colors shadow-lg active:scale-95 ${timerState.isRunning ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'}`}>
               {timerState.isRunning ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-0.5" />}
             </button>
           </div>
@@ -1312,12 +1335,46 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
             <input type="file" accept=".json" ref={fileInputRef} className="hidden" onChange={handleOpenProjectFile} />
             <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title={t('editor.open')} className="hidden sm:inline-flex"><FolderOpen className="w-5 h-5 text-yellow-600" /></Button>
 
+            <Button variant="ghost" size="icon" onClick={handleNewSermon} title="Nuevo Sermón" className="hidden sm:inline-flex"><FilePlus className="w-5 h-5 text-orange-600" /></Button>
+
             <Button variant="ghost" size="icon" onClick={handleSaveToLibrary} title="Guardar en Biblioteca" className="hidden sm:inline-flex"><Save className="w-5 h-5 text-blue-600" /></Button>
             <Button variant="ghost" size="icon" onClick={handleSaveToCalendar} title="Guardar en Calendario" className="hidden sm:inline-flex"><CalendarIcon className="w-5 h-5 text-green-600" /></Button>
             <Button variant="ghost" size="icon" onClick={handleShowStorageDialog} title="Guardar como Archivo" className="hidden sm:inline-flex"><Cloud className="w-5 h-5 text-purple-600" /></Button>
 
-            <div className="sm:hidden">
-              <Button variant="ghost" size="icon" onClick={() => setShowConfigModal(true)}><Settings className="w-6 h-6" /></Button>
+            {/* MENÚ MÓVIL CON TEXTO */}
+            <div className="sm:hidden relative">
+              <Button variant="ghost" size="icon" onClick={() => setShowMobileMenu(!showMobileMenu)} title="Menú">
+                <Settings className="w-6 h-6" />
+              </Button>
+              {showMobileMenu && (
+                <div className="absolute right-0 top-12 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-xl z-50 min-w-[200px] py-2 animate-fade-in">
+                  <button onClick={() => { fileInputRef.current?.click(); setShowMobileMenu(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] text-left">
+                    <FolderOpen className="w-5 h-5 text-yellow-600" />
+                    <span className="text-sm text-[var(--text-primary)]">Abrir Proyecto</span>
+                  </button>
+                  <button onClick={() => { handleNewSermon(); setShowMobileMenu(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] text-left">
+                    <FilePlus className="w-5 h-5 text-orange-600" />
+                    <span className="text-sm text-[var(--text-primary)]">Nuevo Sermón</span>
+                  </button>
+                  <button onClick={() => { handleSaveToLibrary(); setShowMobileMenu(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] text-left">
+                    <Save className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm text-[var(--text-primary)]">Guardar en Biblioteca</span>
+                  </button>
+                  <button onClick={() => { handleSaveToCalendar(); setShowMobileMenu(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] text-left">
+                    <CalendarIcon className="w-5 h-5 text-green-600" />
+                    <span className="text-sm text-[var(--text-primary)]">Guardar en Calendario</span>
+                  </button>
+                  <button onClick={() => { handleShowStorageDialog(); setShowMobileMenu(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] text-left">
+                    <Cloud className="w-5 h-5 text-purple-600" />
+                    <span className="text-sm text-[var(--text-primary)]">Exportar Archivo</span>
+                  </button>
+                  <div className="border-t border-[var(--border-color)] my-2"></div>
+                  <button onClick={() => { setShowConfigModal(true); setShowMobileMenu(false); }} className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] text-left">
+                    <Settings className="w-5 h-5 text-gray-600" />
+                    <span className="text-sm text-[var(--text-primary)]">Configuración</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="hidden lg:flex gap-1 ml-2 border-l border-[var(--border-color)] pl-2">
@@ -1333,7 +1390,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               <Button variant="outline" size="icon" onClick={downloadPPT} title={t('export.ppt')} loading={isExporting}><Presentation className="w-4 h-4" /></Button>
               <Button variant="primary" size="sm" onClick={handlePrint} title={t('export.print')}><Printer className="w-4 h-4 mr-2" /> {t('editor.print')}</Button>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setRightSidebarOpen(!rightSidebarOpen)}><PanelRight className="w-6 h-6" /></Button>
+            <Button variant="ghost" size="icon" onClick={() => setRightSidebarOpen(!rightSidebarOpen)} title={rightSidebarOpen ? 'Ocultar Panel Derecho' : 'Mostrar Panel Derecho'}><PanelRight className="w-6 h-6" /></Button>
           </div>
         </header>
 
@@ -1346,7 +1403,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           <aside className={`${leftSidebarOpen ? 'w-[280px] translate-x-0' : 'w-[0px] -translate-x-full md:w-[0px] md:translate-x-0'} absolute md:relative z-30 h-full transition-all duration-300 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col overflow-hidden shadow-2xl md:shadow-none`}>
             <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between shrink-0">
               <span className="font-bold text-xs uppercase tracking-wider text-[var(--text-secondary)]">{t('editor.structure')}</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLeftSidebarOpen(false)}><ChevronLeft className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon\" className="h-10 w-10 bg-red-100 hover:bg-red-200 rounded-full" onClick={() => setLeftSidebarOpen(false)} title="Ocultar Estructura"><ChevronLeft className="w-6 h-6 text-red-600" /></Button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {sermon.sections.map((section) => (
@@ -1387,7 +1444,15 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
           {!leftSidebarOpen && (
             <div className="absolute left-0 top-4 z-10">
-              <Button variant="secondary" size="icon" onClick={() => setLeftSidebarOpen(true)} className="rounded-l-none shadow-md border-l-0"><ChevronRight className="w-4 h-4" /></Button>
+              <Button
+                variant="primary"
+                size="icon"
+                onClick={() => setLeftSidebarOpen(true)}
+                className="rounded-l-none shadow-lg border-l-0 bg-blue-600 hover:bg-blue-700 animate-pulse"
+                title="Mostrar Estructura del Sermón"
+              >
+                <ChevronRight className="w-5 h-5 text-white" />
+              </Button>
             </div>
           )}
 
@@ -1561,9 +1626,23 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               </div>
             </div>
             <div className="h-14 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between px-6 shrink-0">
-              <Button variant="ghost" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
+              <Button
+                variant={sermon.sections.findIndex(s => s.id === activeSectionId) > 0 ? "outline" : "ghost"}
+                onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }}
+                disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}
+                className={sermon.sections.findIndex(s => s.id === activeSectionId) > 0 ? "border-blue-500 text-blue-600 hover:bg-blue-50" : ""}
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}
+              </Button>
               <span className="text-sm font-medium text-[var(--text-secondary)]">{sermon.sections.findIndex(s => s.id === activeSectionId) + 1} de {sermon.sections.length}</span>
-              <Button variant="primary" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1}>{t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button
+                variant="primary"
+                onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }}
+                disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </main>
 
@@ -2113,9 +2192,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                 )}
               </div>
             </div>
-            <div className="p-6 border-t border-[var(--border-color)] flex justify-end gap-3 shrink-0 bg-[var(--bg-secondary)]">
-              <Button variant="ghost" onClick={() => setShowConfigModal(false)}>{t('config.cancel')}</Button>
-              <Button onClick={handleSaveConfig} loading={isGeneratingStructure}>{t('config.save_generate')}</Button>
+            <div className="p-6 border-t border-[var(--border-color)] flex justify-between items-center shrink-0 bg-[var(--bg-secondary)]">
+              <Button variant="ghost" onClick={handleSaveMetadataOnly} className="text-green-600 hover:bg-green-50">
+                ✓ Solo Guardar Datos
+              </Button>
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={() => setShowConfigModal(false)}>{t('config.cancel')}</Button>
+                <Button onClick={handleSaveConfig} loading={isGeneratingStructure}>{t('config.save_generate')}</Button>
+              </div>
             </div>
           </div>
         </div>
@@ -2202,6 +2286,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           </div>
         </div>
       )}
+
+      {/* TODO: LiveStreamConfig component missing 
+      <LiveStreamConfig
+        isOpen={showLiveStreamModal}
+        onClose={() => setShowLiveStreamModal(false)}
+        userPlan="premium" // TODO: Use real user plan
+      />
+      */}
 
       {/* CONTEXT MENU */}
       {contextMenu.show && (
