@@ -1,0 +1,1 @@
+import React, { useState, useEffect, useRef } from 'react'; import { MessageSquarePlus, Search, Copy, X, Check, Loader2, BookOpen, ArrowRight } from 'lucide-react'; ... (ContextMenu.tsx full content)
