@@ -1,1 +1,1 @@
-import React, { useState, useEffect } from 'react'; import { Search, Loader2, Book, Brain, FileText, FileType, Presentation, Printer, GraduationCap, BookOpen, X, FileInput, MonitorPlay } from 'lucide-react'; ... (BibleSearch.tsx full content)
+components/BibleSearch.tsx
