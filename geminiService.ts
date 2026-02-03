@@ -1,0 +1,1 @@
+import { GoogleGenAI } from "@google/genai"; import { SearchResult, DictionaryResult, AIConfig } from "../types"; ... (geminiService.ts full content)

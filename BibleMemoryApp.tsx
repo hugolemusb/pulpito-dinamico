@@ -1,0 +1,1 @@
+import React, { useState, useEffect } from 'react'; import { BookOpen, Brain, Target, ListChecks, TrendingUp, Home, Clock, Trophy, Heart, Lightbulb, Shield, Search, Filter, Star, Zap, Award, Volume2, Edit3, Calendar, CheckCircle2 } from 'lucide-react'; ... (BibleMemoryApp.tsx full content)
