@@ -216,6 +216,15 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     showControls: false
   });
 
+  // Pexels API Key State
+  const [pexelsApiKey, setPexelsApiKey] = useState(() => localStorage.getItem('pexels_api_key') || '');
+
+  // Save Pexels Key when changed
+  useEffect(() => {
+    if (pexelsApiKey) localStorage.setItem('pexels_api_key', pexelsApiKey);
+    else localStorage.removeItem('pexels_api_key');
+  }, [pexelsApiKey]);
+
   const sermonRef = useRef(sermon);
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const announcementsRef = useRef<HTMLDivElement>(null);
@@ -679,28 +688,44 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
       const images: string[] = [];
 
-      // OPCIÓN 1: POLLINATIONS (Modelos estilo Prodia)
-      // Usamos modelos específicos que funcionan bien para estilo bíblico/cinematográfico
-      const aiStyles = [
-        { prompt: "cinematic lighting, biblical art style, hyperrealistic, 8k, dramatic atmosphere", model: "flux" },
-        { prompt: "oil painting, classic art, detailed, masterpiece", model: "turbo" },
-        { prompt: "photorealistic, soft light, warm colors, high quality", model: "flux-realism" }, // Hypothetical model name or just reliable usage
-        { prompt: "digital art, concept art, fantasy, sharp focus", model: "turbo" }
-      ];
-
-      for (const [index, style] of aiStyles.entries()) {
-        const finalPrompt = `${description}, ${style.prompt}`;
-        const encoded = encodeURIComponent(finalPrompt);
-        const seed = Math.floor(Math.random() * 1000000) + index;
-        // Usamos nologo=true y private=true para intentar evitar marcas de agua o caching agresivo
-        images.push(`https://image.pollinations.ai/prompt/${encoded}?width=800&height=450&model=${style.model}&nologo=true&seed=${seed}`);
+      // 1. PEXELS SEARCH (Si hay API Key)
+      if (pexelsApiKey) {
+        try {
+          const pexelsResp = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(description)}&per_page=4&orientation=landscape&locale=es-ES`, {
+            headers: { Authorization: pexelsApiKey }
+          });
+          if (pexelsResp.ok) {
+            const data = await pexelsResp.json();
+            const photos = data.photos.map((p: any) => p.src.medium); // Usamos tamaño medio para rendimiento
+            images.push(...photos);
+          } else {
+            console.error("Pexels Error:", pexelsResp.status);
+          }
+        } catch (err) {
+          console.error("Error fetching Pexels:", err);
+        }
       }
 
-      // OPCIÓN 2: PEXELS (Si se requiere implementación futura o si el usuario configura API)
-      // Por ahora, mezclamos resultados de IA que es lo más inmediato sin API Key
-      // Si el usuario provee una API key de Pexels en el futuro, aquí iría el fetch.
-      // const pexelsImages = await searchPexels(q); 
-      // images.push(...pexelsImages);
+      // 2. POLLINATIONS AI (Fallback o Complemento)
+      // Si tenemos pocas imágenes de Pexels (o ninguna), completamos con AI
+      if (images.length < 4) {
+        const remainingCount = 4 - images.length;
+        // Simplificamos a modelos seguros (turbo/unity) para evitar errores de carga
+        const aiStyles = [
+          { prompt: "cinematic lighting, biblical art, photorealistic", model: "turbo" },
+          { prompt: "oil painting, dramatic light, concept art", model: "turbo" }, // 'turbo' es rápido y fiable
+          { prompt: "digital art, soft colors, serene", model: "flux" },
+          { prompt: "epical atmosphere, 8k render", model: "flux-realism" }
+        ].slice(0, remainingCount); // Solo generamos las necesarias
+
+        aiStyles.forEach((style, index) => {
+          const finalPrompt = `${description}, ${style.prompt}`;
+          const encoded = encodeURIComponent(finalPrompt);
+          const seed = Math.floor(Math.random() * 10000) + index;
+          // Aseguramos URLs válidas con modelos específicos
+          images.push(`https://image.pollinations.ai/prompt/${encoded}?width=800&height=450&model=${style.model}&nologo=true&seed=${seed}`);
+        });
+      }
 
       setSearchImages(images);
     } catch (error: any) {
@@ -1638,12 +1663,19 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                           <button onClick={handlePasteVerse} className="text-xs text-blue-500 hover:underline">{t('editor.visual.paste_verse')}</button>
                           <div className="flex gap-1 items-center">
                             <span className="text-[10px] text-[var(--text-secondary)] mr-1">Fondo:</span>
-                            {['#000000', '#1e3a5f', '#2d4a3e', '#4a1a2d', '#3d2d1a', '#1a1a3d', '#3d1a1a'].map(color => (
+                            {['#000000', '#1A1A1A', '#333333', '#555555', // Grayscale
+                              '#1e3a5f', '#102a43', '#243b53', '#334E68', // Blues
+                              '#2d4a3e', '#143026', '#264e32', '#3e6b52', // Greens
+                              '#4a1a2d', '#38101e', '#5e2139', '#822d4f', // Reds/Maroons
+                              '#3d2d1a', '#291d10', '#4d3920', '#6b5030', // Browns
+                              '#1a1a3d', '#101026', '#25255e', '#393982'  // Purples
+                            ].map(color => (
                               <button
                                 key={color}
                                 onClick={() => setVisualBgColor(color)}
-                                className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${visualBgColor === color ? 'border-white scale-110' : 'border-transparent'}`}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${visualBgColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent'}`}
                                 style={{ backgroundColor: color }}
+                                title={color}
                               />
                             ))}
                             <input type="color" value={visualBgColor} onChange={(e) => setVisualBgColor(e.target.value)} className="w-5 h-5 p-0 border-0 rounded cursor-pointer" title="Color personalizado" />
@@ -1759,6 +1791,31 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                 <div>
                   <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">Evento / Servicio</label>
                   <input type="text" value={sermon.eventName || ''} onChange={(e) => setSermon(prev => ({ ...prev, eventName: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" placeholder="Ej. Culto Dominical" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">Evento / Servicio</label>
+                  <input type="text" value={sermon.eventName || ''} onChange={(e) => setSermon(prev => ({ ...prev, eventName: e.target.value }))} className="w-full p-3 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)]" placeholder="Ej. Culto Dominical" />
+                </div>
+              </div>
+
+              {/* INTEGRACIONES EXTERNAS (PEXELS) */}
+              <div className="p-4 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-purple-500" /> Integraciones Visuales
+                </h3>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-1">Pexels API Key (Opcional)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={pexelsApiKey}
+                      onChange={(e) => setPexelsApiKey(e.target.value)}
+                      className="flex-1 p-2 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] text-sm"
+                      placeholder="Pega tu API Key de Pexels aquí..."
+                    />
+                    <Button variant="secondary" size="sm" onClick={() => window.open('https://www.pexels.com/api/', '_blank')}>Conseguir Key</Button>
+                  </div>
+                  <p className="text-[10px] text-[var(--text-secondary)] mt-1">Si configuras esto, recibirás fotos reales de stock además de las generadas por IA.</p>
                 </div>
               </div>
 
