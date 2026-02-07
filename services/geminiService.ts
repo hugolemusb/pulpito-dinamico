@@ -401,35 +401,59 @@ export const generateUnifiedContent = async (
   return "Error: Proveedor de IA no configurado.";
 };
 
-export const validateAIConfig = async (config: AIConfig): Promise<{ isValid: boolean, error?: string }> => {
-  // Simple validation logic
+export const validateAIConfig = async (config: AIConfig): Promise<{ isValid: boolean, error?: string, suggestProxy?: boolean }> => {
+  // Configuración mínima
   if (!config.apiKey) return { isValid: false, error: "Falta API Key" };
 
   try {
     if (config.provider === 'gemini') {
       const ai = new GoogleGenAI({ apiKey: config.apiKey });
+      // Hacemos una llamada mínima para validar
       await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: "Hola",
       });
     } else {
+      // Validación genérica para otros proveedores (OpenAI compatible)
       const baseUrl = cleanUrl(config.baseUrl);
-      const endpoint = `${baseUrl}/chat/completions`; // Fixed: Removed space
+      const endpoint = `${baseUrl}/chat/completions`;
       const fetchUrl = getFetchUrl(endpoint, config.useCorsProxy);
+
       const response = await fetch(fetchUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` }, // Fixed: Removed space
-        body: JSON.stringify({ model: config.modelId || 'gpt-3.5-turbo', messages: [{ role: 'user', content: 'Hola' }], max_tokens: 5 })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`
+        },
+        body: JSON.stringify({
+          model: config.modelId || 'gpt-3.5-turbo',
+          messages: [{ role: 'user', content: 'Hola' }],
+          max_tokens: 5
+        })
       });
-      if (!response.ok) throw new Error(`Status ${response.status}`);
+
+      if (!response.ok) {
+        if (response.status === 401) throw new Error("API Key inválida (401)");
+        if (response.status === 403) throw new Error("Acceso denegado (403)");
+        throw new Error(`Error del servidor: ${response.status}`);
+      }
     }
     return { isValid: true };
   } catch (e: any) {
     let msg = e.message || "Error de conexión";
-    if (msg.includes('401') || msg.includes('403')) msg = "API Key inválida (401)";
-    else if (msg.includes('429')) msg = "Cuota excedida (429)";
-    else if (msg.includes('Failed to fetch')) msg = "Error de Red/CORS. Activa 'Proxy Web'.";
-    return { isValid: false, error: msg };
+    let suggestProxy = false;
+
+    // Detección de errores específicos
+    if (msg.includes('401') || msg.includes('403')) {
+      msg = "API Key inválida. Verifica tus credenciales.";
+    } else if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+      msg = "Cuota excedida (Error 429). Has llegado al límite de tu plan gratuito.";
+    } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('CORS')) {
+      msg = "Error de Red/CORS. El navegador bloqueó la conexión directa.";
+      suggestProxy = true; // Flag para que la UI sugiera activar el proxy
+    }
+
+    return { isValid: false, error: msg, suggestProxy };
   }
 };
 

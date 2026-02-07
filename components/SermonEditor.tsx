@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sermon, SermonSection, SectionType, ChatMessage, Theme, TimerState, TextSettings, Language } from '../types';
 import { Button } from './Button';
-import { chatWithAdvisor, getSectionHelper, getCrossReferences, generateFullSermonStructure, translateForImageSearch, extractVisualKeywords } from '../services/geminiService';
+import { chatWithAdvisor, getSectionHelper, getCrossReferences, generateFullSermonStructure, translateForImageSearch, extractVisualKeywords, searchVersesByTheme } from '../services/geminiService';
 import { fetchVerseText, getBibleVersions, BIBLE_BOOKS } from '../services/bibleService';
 import { speakText, stopAudio, stripHtmlForAudio, splitTextIntoChunks, isSpeaking } from '../services/audioService';
 import { useTranslation } from '../context/LanguageContext';
@@ -198,6 +198,11 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [tempSelectedBook, setTempSelectedBook] = useState<typeof BIBLE_BOOKS[0] | null>(null);
   const [tempSelectedChapter, setTempSelectedChapter] = useState<number | null>(null);
   const [tempSelectedVerses, setTempSelectedVerses] = useState<number[]>([]);
+  // THEME SEARCH STATE
+  const [themeSearchMode, setThemeSearchMode] = useState(false);
+  const [themeQuery, setThemeQuery] = useState('');
+  const [themeResults, setThemeResults] = useState<any[]>([]);
+  const [isSearchingTheme, setIsSearchingTheme] = useState(false);
 
   const [audioPlayer, setAudioPlayer] = useState<{
     isPlaying: boolean;
@@ -1072,6 +1077,58 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     }
   };
 
+  // --- THEME SEARCH HANDLERS ---
+  const handleSearchTheme = async () => {
+    if (!themeQuery.trim()) return;
+    setIsSearchingTheme(true);
+    setThemeResults([]);
+    try {
+      const results = await searchVersesByTheme(themeQuery);
+      setThemeResults(results);
+    } catch (error) {
+      console.error(error);
+      alert("Error buscando versículos por tema");
+    } finally {
+      setIsSearchingTheme(false);
+    }
+  };
+
+  const handleSelectSuggestedVerse = (verse: any) => {
+    setSermon(prev => ({
+      ...prev,
+      mainVerse: verse.ref,
+      mainVerseText: verse.text,
+      mainVerseVersion: 'RVR1960' // Default or make selectable
+    }));
+    // Clear picker state
+    setVersePickerStep('none');
+    setTempSelectedBook(null);
+    setTempSelectedChapter(null);
+    setTempSelectedVerses([]);
+    setThemeSearchMode(false); // Reset mode
+  };
+
+  const handleSaveOnlyMetadata = () => {
+    setShowConfigModal(false);
+
+    // Trigger auto-save logic manually to ensure persistence
+    const current = sermonRef.current;
+    localStorage.setItem('current_sermon', JSON.stringify(current));
+    setLastSaved(new Date());
+
+    // Optional: Add to history
+    const historyJson = localStorage.getItem('sermon_history');
+    let history: Sermon[] = historyJson ? JSON.parse(historyJson) : [];
+    const existingIndex = history.findIndex(s => s.id === current.id);
+    if (existingIndex >= 0) {
+      history[existingIndex] = { ...current, updatedAt: Date.now() };
+    } else {
+      history.unshift({ ...current, updatedAt: Date.now() });
+    }
+    if (history.length > 10) history = history.slice(0, 10);
+    localStorage.setItem('sermon_history', JSON.stringify(history));
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div id="sermon-print-area" className="hidden print-only">
@@ -1168,7 +1225,9 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           <aside className={`${leftSidebarOpen ? 'w-[280px] translate-x-0' : 'w-[0px] -translate-x-full md:w-[0px] md:translate-x-0'} absolute md:relative z-30 h-full transition-all duration-300 bg-[var(--bg-secondary)] border-r border-[var(--border-color)] flex flex-col overflow-hidden shadow-2xl md:shadow-none`}>
             <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between shrink-0">
               <span className="font-bold text-xs uppercase tracking-wider text-[var(--text-secondary)]">{t('editor.structure')}</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setLeftSidebarOpen(false)}><ChevronLeft className="w-4 h-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[var(--bg-tertiary)]" onClick={() => setLeftSidebarOpen(false)} title="Ocultar Estructura">
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {sermon.sections.map((section) => (
@@ -1208,8 +1267,16 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
           </aside>
 
           {!leftSidebarOpen && (
-            <div className="absolute left-0 top-4 z-10">
-              <Button variant="secondary" size="icon" onClick={() => setLeftSidebarOpen(true)} className="rounded-l-none shadow-md border-l-0"><ChevronRight className="w-4 h-4" /></Button>
+            <div className="absolute left-0 top-4 z-10 animate-fade-in-right">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => setLeftSidebarOpen(true)}
+                className="h-10 w-8 rounded-l-none shadow-lg border-l-0 bg-[var(--bg-secondary)] hover:w-10 transition-all hover:text-[var(--accent-color)]"
+                title="Mostrar Estructura"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </Button>
             </div>
           )}
 
@@ -1732,67 +1799,127 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4 animate-fade-in bg-[var(--bg-primary)] p-4 rounded-xl border border-[var(--border-color)] h-[300px] flex flex-col">
-                    {/* Version Selector inside Picker */}
-                    <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-2 shrink-0">
-                      <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
-                        {versePickerStep === 'books'
-                          ? 'Selecciona Libro'
-                          : versePickerStep === 'chapters' && tempSelectedBook
-                            ? tempSelectedBook.name
-                            : versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter
-                              ? `${tempSelectedBook.name} ${tempSelectedChapter}`
-                              : 'Selección'}
-                      </span>
-                      <div className="relative">
-                        <select
-                          value={sermon.mainVerseVersion || 'RVR1960'}
-                          onChange={(e) => setSermon(prev => ({ ...prev, mainVerseVersion: e.target.value }))}
-                          className="appearance-none bg-[var(--bg-secondary)] text-[10px] font-bold text-[var(--text-primary)] px-2 py-1 pr-6 rounded border border-[var(--border-color)] focus:outline-none"
-                        >
-                          {bibleVersions.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                        </select>
-                        <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
-                      </div>
+                  <div className="space-y-4 animate-fade-in bg-[var(--bg-primary)] p-4 rounded-xl border border-[var(--border-color)] h-[350px] flex flex-col">
+                    {/* TABS SELECTOR */}
+                    <div className="flex gap-2 p-1 bg-[var(--bg-secondary)] rounded-lg shrink-0">
+                      <button
+                        onClick={() => setThemeSearchMode(false)}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${!themeSearchMode ? 'bg-white shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                      >
+                        📖 Libros
+                      </button>
+                      <button
+                        onClick={() => setThemeSearchMode(true)}
+                        className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${themeSearchMode ? 'bg-white shadow text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                      >
+                        🔍 Por Tema
+                      </button>
                     </div>
 
-                    {versePickerStep === 'books' && (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-1 content-start">
-                        {BIBLE_BOOKS.map(b => (
-                          <button key={b.id} onClick={() => handleVersePickerBookClick(b)} className="h-auto min-h-[40px] text-[11px] p-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] text-center whitespace-normal leading-tight transition-colors flex items-center justify-center">
-                            {b.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {versePickerStep === 'chapters' && tempSelectedBook && (
-                      <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start">
-                        {Array.from({ length: tempSelectedBook.chapters }, (_, i) => i + 1).map(c => (
-                          <button key={c} onClick={() => handleVersePickerChapterClick(c)} className="aspect-square flex items-center justify-center text-sm font-bold bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white transition-colors">
-                            {c}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter && (
-                      <div className="flex flex-col h-full">
-                        <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start mb-2">
-                          {Array.from({ length: 50 }, (_, i) => i + 1).map(v => (
-                            <button
-                              key={v}
-                              onClick={() => handleVersePickerVerseToggle(v)}
-                              className={`aspect-square flex items-center justify-center text-sm font-bold rounded-lg border transition-all ${tempSelectedVerses.includes(v) ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)] scale-105 shadow-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}`}
-                            >
-                              {v}
-                            </button>
-                          ))}
+                    {themeSearchMode ? (
+                      // THEME SEARCH UI
+                      <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+                        <div className="flex gap-2 shrink-0">
+                          <input
+                            type="text"
+                            placeholder="Ej: Esperanza, Fe en tiempos difíciles..."
+                            className="flex-1 p-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                            value={themeQuery}
+                            onChange={(e) => setThemeQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearchTheme()}
+                          />
+                          <Button onClick={handleSearchTheme} disabled={isSearchingTheme || !themeQuery.trim()} size="sm">
+                            {isSearchingTheme ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                          </Button>
                         </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)] shrink-0">
-                          <span className="text-xs text-[var(--text-secondary)]">
-                            {tempSelectedVerses.length > 0 ? `${tempSelectedVerses.length} seleccionados` : 'Selecciona versículos'}
+
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+                          {themeResults.length === 0 && !isSearchingTheme ? (
+                            <div className="text-center text-[var(--text-secondary)] py-8 text-xs">
+                              Escribe un tema para buscar versículos sugeridos por IA.
+                            </div>
+                          ) : (
+                            themeResults.map((verse, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => handleSelectSuggestedVerse(verse)}
+                                className="p-3 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] hover:border-[var(--accent-color)] border border-[var(--border-color)] rounded-lg cursor-pointer transition-all group"
+                              >
+                                <div className="flex justify-between items-start mb-1">
+                                  <span className="font-bold text-xs text-[var(--accent-color)]">{verse.ref}</span>
+                                  <span className="text-[10px] bg-[var(--bg-primary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)]">RVR1960</span>
+                                </div>
+                                <p className="text-xs text-[var(--text-primary)] italic mb-1">"{verse.text}"</p>
+                                <p className="text-[10px] text-[var(--text-secondary)]">{verse.relevance}</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col h-full overflow-hidden">
+                        {/* Version Selector inside Picker */}
+                        <div className="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-2 shrink-0">
+                          <span className="text-xs font-bold text-[var(--text-secondary)] uppercase">
+                            {versePickerStep === 'books'
+                              ? 'Selecciona Libro'
+                              : versePickerStep === 'chapters' && tempSelectedBook
+                                ? tempSelectedBook.name
+                                : versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter
+                                  ? `${tempSelectedBook.name} ${tempSelectedChapter}`
+                                  : 'Selección'}
                           </span>
-                          <Button size="sm" onClick={handleConfirmVerseSelection} disabled={tempSelectedVerses.length === 0}>Confirmar</Button>
+                          <div className="relative">
+                            <select
+                              value={sermon.mainVerseVersion || 'RVR1960'}
+                              onChange={(e) => setSermon(prev => ({ ...prev, mainVerseVersion: e.target.value }))}
+                              className="appearance-none bg-[var(--bg-secondary)] text-[10px] font-bold text-[var(--text-primary)] px-2 py-1 pr-6 rounded border border-[var(--border-color)] focus:outline-none"
+                            >
+                              {bibleVersions.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </select>
+                            <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" />
+                          </div>
                         </div>
+
+                        {versePickerStep === 'books' && (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-y-auto pr-1 flex-1 content-start">
+                            {BIBLE_BOOKS.map(b => (
+                              <button key={b.id} onClick={() => handleVersePickerBookClick(b)} className="h-auto min-h-[40px] text-[11px] p-1 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] text-center whitespace-normal leading-tight transition-colors flex items-center justify-center">
+                                {b.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {versePickerStep === 'chapters' && tempSelectedBook && (
+                          <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start">
+                            {Array.from({ length: tempSelectedBook.chapters }, (_, i) => i + 1).map(c => (
+                              <button key={c} onClick={() => handleVersePickerChapterClick(c)} className="aspect-square flex items-center justify-center text-sm font-bold bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white transition-colors">
+                                {c}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {versePickerStep === 'verses' && tempSelectedBook && tempSelectedChapter && (
+                          <div className="flex flex-col h-full overflow-hidden">
+                            <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 overflow-y-auto pr-1 flex-1 content-start mb-2">
+                              {Array.from({ length: 50 }, (_, i) => i + 1).map(v => (
+                                <button
+                                  key={v}
+                                  onClick={() => handleVersePickerVerseToggle(v)}
+                                  className={`aspect-square flex items-center justify-center text-sm font-bold rounded-lg border transition-all ${tempSelectedVerses.includes(v) ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)] scale-105 shadow-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}`}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-[var(--border-color)] shrink-0">
+                              <span className="text-xs text-[var(--text-secondary)]">
+                                {tempSelectedVerses.length > 0 ? `${tempSelectedVerses.length} seleccionados` : 'Selecciona versículos'}
+                              </span>
+                              <Button size="sm" onClick={handleConfirmVerseSelection} disabled={tempSelectedVerses.length === 0}>Confirmar</Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1801,6 +1928,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
             </div>
             <div className="p-6 border-t border-[var(--border-color)] flex justify-end gap-3 shrink-0 bg-[var(--bg-secondary)]">
               <Button variant="ghost" onClick={() => setShowConfigModal(false)}>{t('config.cancel')}</Button>
+              <Button variant="secondary" onClick={handleSaveOnlyMetadata} disabled={isGeneratingStructure}>Guardar Solo Datos</Button>
               <Button onClick={handleSaveConfig} loading={isGeneratingStructure}>{t('config.save_generate')}</Button>
             </div>
           </div>
