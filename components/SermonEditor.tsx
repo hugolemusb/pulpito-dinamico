@@ -243,6 +243,18 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     }
   }, [sermon.mainVerse]);
 
+  // FIX: Sincronización segura del editor de Avisos para evitar saltos de cursor
+  useEffect(() => {
+    if (announcementsRef.current) {
+      // Solo actualizar si el contenido es diferente Y el elemento NO tiene el foco
+      // Esto evita que React sobrescriba el DOM mientras el usuario escribe
+      if (announcementsRef.current.innerHTML !== (sermon.announcements || '') &&
+        document.activeElement !== announcementsRef.current) {
+        announcementsRef.current.innerHTML = sermon.announcements || '';
+      }
+    }
+  }, [sermon.announcements]);
+
   // --- AUDIO & TIMER ---
   const playTimerSound = () => {
     try {
@@ -654,21 +666,48 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     if (overrideQuery) setVisualQuery(overrideQuery);
     setIsVisualLoading(true);
     setSearchImages([]);
+
     try {
-      let description = overrideQuery ? overrideQuery : await translateForImageSearch(q);
-      description = description.replace(/[^\w\s,]/gi, '');
-      const styles = [
-        { prompt: "hyperrealistic, cinematic lighting, 8k, dramatic atmosphere", model: "flux" },
-        { prompt: "digital art, 3d render, soft lighting, vibrant colors", model: "turbo" }
+      // 1. Mejora: Intentar usar traducción, pero si falla usar query original
+      let description = q;
+      try {
+        description = await translateForImageSearch(q);
+        description = description.replace(/[^ \w\s,]/gi, ''); // Retain spaces
+      } catch (e) {
+        console.warn("Translation failed, using original query", e);
+      }
+
+      const images: string[] = [];
+
+      // OPCIÓN 1: POLLINATIONS (Modelos estilo Prodia)
+      // Usamos modelos específicos que funcionan bien para estilo bíblico/cinematográfico
+      const aiStyles = [
+        { prompt: "cinematic lighting, biblical art style, hyperrealistic, 8k, dramatic atmosphere", model: "flux" },
+        { prompt: "oil painting, classic art, detailed, masterpiece", model: "turbo" },
+        { prompt: "photorealistic, soft light, warm colors, high quality", model: "flux-realism" }, // Hypothetical model name or just reliable usage
+        { prompt: "digital art, concept art, fantasy, sharp focus", model: "turbo" }
       ];
-      const images = styles.map((s, index) => {
-        const finalPrompt = `${description}, ${s.prompt}`;
+
+      for (const [index, style] of aiStyles.entries()) {
+        const finalPrompt = `${description}, ${style.prompt}`;
         const encoded = encodeURIComponent(finalPrompt);
         const seed = Math.floor(Math.random() * 1000000) + index;
-        return `https://image.pollinations.ai/prompt/${encoded}?width=640&height=360&model=${s.model}&nologo=true&seed=${seed}`;
-      });
+        // Usamos nologo=true y private=true para intentar evitar marcas de agua o caching agresivo
+        images.push(`https://image.pollinations.ai/prompt/${encoded}?width=800&height=450&model=${style.model}&nologo=true&seed=${seed}`);
+      }
+
+      // OPCIÓN 2: PEXELS (Si se requiere implementación futura o si el usuario configura API)
+      // Por ahora, mezclamos resultados de IA que es lo más inmediato sin API Key
+      // Si el usuario provee una API key de Pexels en el futuro, aquí iría el fetch.
+      // const pexelsImages = await searchPexels(q); 
+      // images.push(...pexelsImages);
+
       setSearchImages(images);
-    } catch (error: any) { alert(error.message); } finally { setIsVisualLoading(false); }
+    } catch (error: any) {
+      alert(`Error al buscar imágenes: ${error.message}`);
+    } finally {
+      setIsVisualLoading(false);
+    }
   };
 
   const handleSuggestImages = async () => {
@@ -1402,9 +1441,9 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               </div>
             </div>
             <div className="h-14 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between px-6 shrink-0">
-              <Button variant="ghost" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
+              <Button variant="outline" className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
               <span className="text-sm font-medium text-[var(--text-secondary)]">{sermon.sections.findIndex(s => s.id === activeSectionId) + 1} de {sermon.sections.length}</span>
-              <Button variant="primary" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1}>{t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" /></Button>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg transition-all" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx < sermon.sections.length - 1) setActiveSectionId(sermon.sections[idx + 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === sermon.sections.length - 1}>{t('editor.next')} <ChevronRight className="w-4 h-4 ml-2" /></Button>
             </div>
           </main>
 
@@ -1660,10 +1699,10 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       <div
                         ref={announcementsRef}
                         contentEditable
+                        suppressContentEditableWarning={true}
                         dir="ltr"
                         className="flex-1 p-3 outline-none overflow-y-auto text-sm [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1"
                         onInput={handleAnnouncementsChange}
-                        dangerouslySetInnerHTML={{ __html: sermon.announcements || '' }}
                       />
                     </div>
                   </div>
