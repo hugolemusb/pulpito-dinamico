@@ -290,18 +290,23 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
     return (
       <div
-        className="fixed z-50 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-900 rounded-lg shadow-xl p-4 w-80 animate-fade-in pointer-events-none"
-        style={{ left: position.x, top: position.y + 20 }}
+        className="fixed z-50 rounded-xl shadow-2xl p-6 w-[90%] max-w-lg animate-fade-in backdrop-blur-md bg-white/90 dark:bg-gray-900/90 border border-white/20 dark:border-gray-700/50 pointer-events-none transition-all duration-300"
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
       >
-        <div className="flex justify-between items-center mb-2 border-b border-gray-100 dark:border-gray-700 pb-1">
-          <span className="font-bold text-blue-600 dark:text-blue-400 text-sm">{reference}</span>
-          <span className="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{version}</span>
+        <div className="flex justify-between items-center mb-3">
+          <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{reference}</span>
+          <span className="text-[10px] text-gray-500 font-bold bg-gray-100/50 dark:bg-black/30 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700">{version}</span>
         </div>
-        <p className="text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed font-serif">
+        <p className="text-base text-gray-800 dark:text-gray-100 italic leading-relaxed font-reading text-center border-t border-b border-gray-100/50 dark:border-gray-700/50 py-3 my-1">
           "{text}"
         </p>
-        <div className="mt-2 text-[10px] text-gray-400 text-right">
-          Púlpito Dinámico
+        <div className="mt-2 flex justify-between items-center">
+          <span className="text-[10px] text-gray-400">Púlpito Dinámico</span>
+          <span className="text-[10px] text-gray-400 opacity-60">Clic fuera para cerrar</span>
         </div>
       </div>
     );
