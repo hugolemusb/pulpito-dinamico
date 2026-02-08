@@ -218,12 +218,32 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
   // Pexels API Key State
   const [pexelsApiKey, setPexelsApiKey] = useState(() => localStorage.getItem('pexels_api_key') || '');
+  const [visualSource, setVisualSource] = useState<'ai' | 'pexels'>('ai'); // Source selector
+  const [hasAutoSuggested, setHasAutoSuggested] = useState(false); // Validates if auto-suggest ran
 
   // Save Pexels Key when changed
   useEffect(() => {
-    if (pexelsApiKey) localStorage.setItem('pexels_api_key', pexelsApiKey);
-    else localStorage.removeItem('pexels_api_key');
+    if (pexelsApiKey) {
+      localStorage.setItem('pexels_api_key', pexelsApiKey);
+      setVisualSource('pexels'); // Auto-switch if key is added
+    } else {
+      localStorage.removeItem('pexels_api_key');
+    }
   }, [pexelsApiKey]);
+
+  // AUTO-SUGGEST IMAGES ON CONTEXT
+  useEffect(() => {
+    if (!hasAutoSuggested && (sermon.title || sermon.mainVerseText) && !searchImages.length && !isVisualLoading) {
+      const timeoutId = setTimeout(() => {
+        if (sermon.title.length > 5 || sermon.mainVerseText.length > 20) {
+          console.log("Auto-suggesting images based on context...");
+          handleSuggestImages();
+          setHasAutoSuggested(true);
+        }
+      }, 2000); // 2s delay to allow typing
+      return () => clearTimeout(timeoutId);
+    }
+  }, [sermon.title, sermon.mainVerseText, hasAutoSuggested]);
 
   const sermonRef = useRef(sermon);
   const contentEditableRef = useRef<HTMLDivElement>(null);
@@ -1601,18 +1621,42 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
                     <div className="space-y-2">
                       <div className="flex gap-2">
+                        <div className="flex rounded-lg bg-[var(--bg-primary)] p-1 border border-[var(--border-color)] shrink-0">
+                          <button
+                            onClick={() => setVisualSource('ai')}
+                            className={`px-3 py-1 text-xs font-bold rounded ${visualSource === 'ai' ? 'bg-[var(--accent-color)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                            title="Generar imágenes únicas con IA"
+                          >
+                            ✨ IA
+                          </button>
+                          <button
+                            onClick={() => setVisualSource('pexels')}
+                            className={`px-3 py-1 text-xs font-bold rounded ${visualSource === 'pexels' ? 'bg-blue-600 text-white shadow-sm' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
+                            title="Buscar fotos de stock en Pexels"
+                          >
+                            📸 Pexels
+                          </button>
+                        </div>
                         <input
                           type="text"
                           value={visualQuery}
                           onChange={(e) => setVisualQuery(e.target.value)}
-                          placeholder={t('editor.visual.search')}
+                          placeholder={visualSource === 'ai' ? t('editor.visual.search') : "Buscar en Pexels..."}
                           className="flex-1 p-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-primary)]"
+                          onKeyDown={(e) => e.key === 'Enter' && handleVisualSearch()}
                         />
                         <Button size="icon" onClick={() => handleVisualSearch()} disabled={isVisualLoading}><Search className="w-4 h-4" /></Button>
                       </div>
-                      <Button variant="secondary" size="sm" className="w-full text-xs" onClick={handleSuggestImages} disabled={isVisualLoading} icon={<Wand2 className="w-3 h-3" />}>
-                        {t('editor.visual.suggest')}
-                      </Button>
+                      <div className="flex justify-between items-center">
+                        <Button variant="secondary" size="sm" className="text-xs" onClick={handleSuggestImages} disabled={isVisualLoading} icon={<Wand2 className="w-3 h-3" />}>
+                          {t('editor.visual.suggest')}
+                        </Button>
+                        {!searchImages.length && !isVisualLoading && (
+                          <span className="text-[10px] text-[var(--text-secondary)] animate-pulse">
+                            {hasAutoSuggested ? "Sugerencias cargadas" : "Esperando contexto para sugerir..."}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {searchImages.length > 0 && (
@@ -1661,8 +1705,8 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                         />
                         <div className="flex justify-between items-center">
                           <button onClick={handlePasteVerse} className="text-xs text-blue-500 hover:underline">{t('editor.visual.paste_verse')}</button>
-                          <div className="flex gap-1 items-center">
-                            <span className="text-[10px] text-[var(--text-secondary)] mr-1">Fondo:</span>
+                          <div className="flex gap-1 items-center flex-wrap justify-end">
+                            <span className="text-[10px] text-[var(--text-secondary)] mr-1 whitespace-nowrap">Fondo:</span>
                             {['#000000', '#1A1A1A', '#333333', '#555555', // Grayscale
                               '#1e3a5f', '#102a43', '#243b53', '#334E68', // Blues
                               '#2d4a3e', '#143026', '#264e32', '#3e6b52', // Greens
@@ -1673,12 +1717,12 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                               <button
                                 key={color}
                                 onClick={() => setVisualBgColor(color)}
-                                className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 ${visualBgColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent'}`}
+                                className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 shrink-0 ${visualBgColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent'}`}
                                 style={{ backgroundColor: color }}
                                 title={color}
                               />
                             ))}
-                            <input type="color" value={visualBgColor} onChange={(e) => setVisualBgColor(e.target.value)} className="w-5 h-5 p-0 border-0 rounded cursor-pointer" title="Color personalizado" />
+                            <input type="color" value={visualBgColor} onChange={(e) => setVisualBgColor(e.target.value)} className="w-5 h-5 p-0 border-0 rounded cursor-pointer shrink-0" title="Color personalizado" />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
