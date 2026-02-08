@@ -6,15 +6,21 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1HL5QQAkwl8C178akf5GYlajJbMmi1m-8
+View your app in AI Studio: <https://ai.studio/apps/drive/1HL5QQAkwl8C178akf5GYlajJbMmi1m-8>
 
 ## Run Locally
 
 **Prerequisites:**  Node.js
-
 
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+# 🚨 DOCUMENTACIÓN MATRIZ (MASTER)
+
+Para cualquier desarrollo, ajuste o mantenimiento futuro, es **OBLIGATORIO** consultar el documento matriz:
+👉 **[PULPITO_MATRIX.md](./PULPITO_MATRIX.md)**
+
+Este documento contiene los criterios de diseño, reglas de negocio y estado actual del proyecto.
