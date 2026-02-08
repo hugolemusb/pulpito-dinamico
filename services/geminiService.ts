@@ -569,6 +569,30 @@ export const getSectionHelper = async (type: string, currentContent: string, con
       `;
       break;
 
+    case 'VIDA_DIARIA':
+      // El 'currentContent' aquí traerá la situación de vida escrita por el usuario
+      const lifeSituation = currentContent || "Situación general de la vida cotidiana";
+      prompt = `
+        CONTEXTO BÍBLICO (Versículo Base): "${context}".
+        SITUACIÓN DE VIDA REAL (del usuario): "${lifeSituation}".
+
+        TAREA: Interpretar esta situación de vida a la luz del texto bíblico entregando DISTINTOS PUNTOS DE VISTA.
+        ${variationInstruction}
+
+        OBJETIVO PASTORAL MULTIDIMENSIONAL:
+        Analiza la situación desde 3 perspectivas distintas para enriquecer el sermón:
+        1. PERSPECTIVA EMOCIONAL/HUMANA: Valida el dolor y la experiencia humana con empatía. ¿Cómo se siente esto?
+        2. PERSPECTIVA ESPIRITUAL/ETERNA: ¿Qué dice el texto bíblico y la eternidad sobre esto? (Consuelo divino, soberanía).
+        3. PERSPECTIVA PRÁCTICA/ACCIÓN: ¿Qué paso concreto de fe se puede dar hoy?
+
+        FORMATO:
+        - Título sugerido para esta reflexión (en <h3>).
+        - Usa subtítulos en negrita (<strong>) para separar las perspectivas (ej: "Mirada Humana", "Mirada Divina").
+        - Redacción empática y profunda, evitando clichés.
+        - Cierre con una promesa bíblica.
+      `;
+      break;
+
     default:
       prompt = `
   Contexto: "${context}".

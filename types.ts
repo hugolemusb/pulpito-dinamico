@@ -24,6 +24,7 @@ export enum SectionType {
   DESARROLLO = 'DESARROLLO',
   LLAMADO = 'LLAMADO',
   CIERRE = 'CIERRE',
+  VIDA_DIARIA = 'VIDA_DIARIA',
   EXTRA = 'EXTRA'
 }
 

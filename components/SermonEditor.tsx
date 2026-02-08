@@ -12,7 +12,7 @@ import {
   Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, FileText, Presentation,
   Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
   Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay
+  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay, HeartHandshake, Info
 } from 'lucide-react';
 
 interface SermonEditorProps {
@@ -521,6 +521,21 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
     // Notify user
     alert('Contenido insertado como nueva sección');
+  };
+
+  const handleAddDailyLifeSection = () => {
+    const newSection: SermonSection = {
+      id: Date.now().toString(),
+      type: SectionType.VIDA_DIARIA,
+      title: 'Vida Diaria',
+      durationMin: 5,
+      content: ''
+    };
+    setSermon(prev => ({
+      ...prev,
+      sections: [...prev.sections, newSection]
+    }));
+    setActiveSectionId(newSection.id);
   };
 
   // ... (REST OF THE LOGIC REMAINS THE SAME - VERSE PICKER, ETC) ...
@@ -1370,6 +1385,16 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
               {!timerState.isRunning && (
                 <button onClick={handleAddSection} className="w-full py-3 border-2 border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] hover:text-[var(--accent-color)] hover:border-[var(--accent-color)] flex items-center justify-center gap-2 text-sm transition-colors"><Plus className="w-4 h-4" /> {t('editor.add_section')}</button>
               )}
+
+              {!timerState.isRunning && (
+                <button
+                  onClick={handleAddDailyLifeSection}
+                  className="w-full mt-2 py-2 border border-blue-200 bg-blue-50 rounded-lg text-blue-600 hover:bg-blue-100 flex items-center justify-center gap-2 text-xs transition-colors font-semibold shadow-sm"
+                  title="Conecta una situación real con el versículo"
+                >
+                  <HeartHandshake className="w-3 h-3" /> Añadir "Vida Diaria"
+                </button>
+              )}
             </div>
           </aside>
 
@@ -1457,6 +1482,18 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       </Button>
                     )}
                   </div>
+
+                  {/* INSTRUCCIONES ESTADO VIDA DIARIA */}
+                  {activeSection.type === SectionType.VIDA_DIARIA && !activeSection.content && (
+                    <div className="mb-4 p-4 bg-blue-50 text-blue-800 rounded-lg text-sm border border-blue-200 flex gap-3 shadow-sm animate-fade-in">
+                      <Info className="w-5 h-5 shrink-0 mt-0.5 text-blue-600" />
+                      <div>
+                        <strong className="block mb-1 text-blue-900">Sección: Aplicación a la Vida Diaria</strong>
+                        Escribe abajo una <strong>situación real</strong> (ej: "Pérdida de un familiar", "Desempleo", "Ansiedad por el futuro").
+                        <br />Luego presiona el botón <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200"><Sparkles className="w-3 h-3 mr-0.5" /> IA</span> arriba para que el sistema redacte una <strong>reflexión pastoral</strong> conectando esa situación con tu versículo.
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {audioPlayer.showControls && (
