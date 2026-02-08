@@ -1685,16 +1685,27 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                     {searchImages.length > 0 && (
                       <div className="grid grid-cols-2 gap-2">
                         {searchImages.map((img, i) => (
-                          <img
-                            key={i}
-                            src={img}
-                            alt="Result"
-                            className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 border border-[var(--border-color)]"
-                            onClick={() => setSelectedImage(img)}
-                          />
+                          <div key={i} className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-[var(--accent-color)]" onClick={() => setSelectedImage(img)}>
+                            <img
+                              src={img}
+                              alt="Result"
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (!target.src.includes('placeholder')) {
+                                  target.style.display = 'none';
+                                  target.parentElement!.innerHTML = `<div class="w-full h-full flex flex-col items-center justify-center bg-gray-200 text-gray-400 text-[10px] p-1 text-center font-bold border border-red-200"><span class="text-xs">⚠️</span><span class="leading-tight">Error Red</span></div>`;
+                                }
+                              }}
+                            />
+                          </div>
                         ))}
                       </div>
                     )}
+                    <div className="text-[10px] text-center text-gray-400 mt-1 italic">
+                      Nota: Si ves ⚠️, es posible que tu red (WiFi) bloquee las imágenes.
+                    </div>
 
                     <div className="border-t border-[var(--border-color)] pt-4">
                       <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-2">Editor de Slide</label>
