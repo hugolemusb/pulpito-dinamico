@@ -697,14 +697,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     setSearchImages([]);
 
     try {
-      // 1. Mejora: Intentar usar traducción, pero si falla usar query original
+      // 1. Mejora: SIEMPRE intentar usar traducción a Inglés para mejorar relevancia en Pexels y AI
       let description = q;
       try {
-        // Solo traducimos si vamos a usar IA o si queremos mejorar la búsqueda en Pexels (aunque Pexels entiende español)
-        // Para simplificar y evitar "mismas imágenes", si es Pexels usamos la query directa si es corta
-        if (visualSource === 'ai') {
-          description = await translateForImageSearch(q);
-          description = description.replace(/[^ \w\s,]/gi, '');
+        // Forzamos traducción siempre, ya que Pexels y los modelos de IA funcionan mucho mejor en inglés
+        // Esto soluciona problemas de relevancia cuando se busca en español/portugués
+        const translated = await translateForImageSearch(q);
+        if (translated && translated.length > 2) {
+          description = translated.replace(/[^ \w\s,]/gi, '');
         }
       } catch (e) {
         console.warn("Translation failed, using original query", e);
@@ -1700,7 +1700,16 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       <label className="block text-xs font-bold uppercase text-[var(--text-secondary)] mb-2">Editor de Slide</label>
                       <div ref={previewRef} className="aspect-video bg-black rounded-lg overflow-hidden relative shadow-md group">
                         {selectedImage ? (
-                          <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" style={{ filter: IMAGE_FILTERS[imageFilter as keyof typeof IMAGE_FILTERS]?.style }} />
+                          <>
+                            <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" style={{ filter: IMAGE_FILTERS[imageFilter as keyof typeof IMAGE_FILTERS]?.style }} />
+                            <button
+                              onClick={() => setSelectedImage(null)}
+                              className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all z-20"
+                              title="Eliminar imagen y usar solo color de fondo"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-white/50 text-xs" style={{ backgroundColor: visualBgColor }}>
                             {overlayText ? '' : 'Click para agregar texto'}
