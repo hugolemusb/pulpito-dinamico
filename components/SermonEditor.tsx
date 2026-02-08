@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Sermon, SermonSection, SectionType, ChatMessage, Theme, TimerState, TextSettings, Language } from '../types';
 import { Button } from './Button';
 import { chatWithAdvisor, getSectionHelper, getCrossReferences, generateFullSermonStructure, translateForImageSearch, extractVisualKeywords, searchVersesByTheme } from '../services/geminiService';
@@ -284,6 +284,29 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     }
   }, [sermon.announcements]);
 
+  // --- BIBLE HOVER TOOLTIP COMPONENT ---
+  const BibleTooltip = ({ reference, text, version, position, onClose }: { reference: string, text: string, version: string, position: { x: number, y: number }, onClose: () => void }) => {
+    if (!reference) return null;
+
+    return (
+      <div
+        className="fixed z-50 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-900 rounded-lg shadow-xl p-4 w-80 animate-fade-in pointer-events-none"
+        style={{ left: position.x, top: position.y + 20 }}
+      >
+        <div className="flex justify-between items-center mb-2 border-b border-gray-100 dark:border-gray-700 pb-1">
+          <span className="font-bold text-blue-600 dark:text-blue-400 text-sm">{reference}</span>
+          <span className="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{version}</span>
+        </div>
+        <p className="text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed font-serif">
+          "{text}"
+        </p>
+        <div className="mt-2 text-[10px] text-gray-400 text-right">
+          Púlpito Dinámico
+        </div>
+      </div>
+    );
+  };
+
   // --- AUDIO & TIMER ---
   const playTimerSound = () => {
     try {
@@ -539,6 +562,148 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   };
 
   // ... (REST OF THE LOGIC REMAINS THE SAME - VERSE PICKER, ETC) ...
+  // --- VERSE HOVER STATE ---
+  const [hoveredVerse, setHoveredVerse] = useState<{ ref: string; text: string; position: { x: number; y: number } } | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Regex para detectar citas bíblicas (ej: Juan 3:16, 1 Pedro 5:7, Salmos 23:1-4)
+  // Simplificado para detectar Nombre + Capítulo:Versículo(s)
+  const BIBLE_REF_REGEX = /((?:[123]\s)?(?:[A-Z][a-záéíóúñ]+)\.?)\s+(\d+):(\d+(?:-\d+)?)/g;
+
+  const handleEditorMouseMove = useCallback(async (e: React.MouseEvent) => {
+    // Solo activar si no estamos seleccionando texto
+    if (window.getSelection()?.toString()) return;
+
+    const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    if (!range || !range.startContainer.textContent) {
+      setHoveredVerse(null);
+      return;
+    }
+
+    // Expandir rango para capturar palabra/frase completa bajo el cursor
+    // Esta es una aproximación. Lo ideal es analizar el textContent del nodo.
+    const text = range.startContainer.textContent;
+    const offset = range.startOffset;
+
+    // Buscar si el cursor está sobre una referencia
+    let match;
+    let foundRef = null;
+
+    // Reiniciar regex
+    BIBLE_REF_REGEX.lastIndex = 0;
+
+    while ((match = BIBLE_REF_REGEX.exec(text)) !== null) {
+      const start = match.index;
+      const end = match.index + match[0].length;
+
+      // Chequear si el cursor (offset) está dentro de este match
+      if (offset >= start && offset <= end) {
+        foundRef = match[0];
+        break;
+      }
+    }
+
+    if (foundRef) {
+      // Debounce para evitar llamadas excesivas
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+
+      // Si ya estamos mostrando ESTA referncia, no hacer nada
+      if (hoveredVerse?.ref === foundRef) return;
+
+      hoverTimeoutRef.current = setTimeout(async () => {
+        try {
+          // Fetch texto (usando versión por defecto RV60 o la que esté configurada)
+          // Asumimos fetchVerseText importado de bibleService
+          // Importar dinámicamente si es necesario o asumir disponibilidad
+          const { fetchVerseText } = await import('../services/bibleService');
+          const verseText = await fetchVerseText(foundRef, 'rv60'); // Default version
+
+          if (verseText) {
+            setHoveredVerse({
+              ref: foundRef,
+              text: verseText,
+              position: { x: e.clientX, y: e.clientY }
+            });
+          }
+        } catch (err) {
+          console.error("Error fetching verse hover:", err);
+        }
+      }, 500); // 500ms delay para confirmar intención
+    } else {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      setHoveredVerse(null);
+    }
+  }, [hoveredVerse]);
+
+  const handleEditorMouseLeave = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setHoveredVerse(null);
+  };
+
+  const handleEditorClick = useCallback(async (e: React.MouseEvent) => {
+    // 1. Si hay selección de texto, NO mostrar tooltip (para permitir copiar/editar)
+    if (window.getSelection()?.toString()) return;
+
+    // 2. Obtener rango en el punto del clic
+    // Nota: caretRangeFromPoint es estándar en Chrome/Safari (Webkit)
+    let range;
+    if (document.caretRangeFromPoint) {
+      range = document.caretRangeFromPoint(e.clientX, e.clientY);
+    } else if ((document as any).caretPositionFromPoint) {
+      // Fallback para Firefox (aunque no es el target principal aquí)
+      const pos = (document as any).caretPositionFromPoint(e.clientX, e.clientY);
+      if (pos) {
+        range = document.createRange();
+        range.setStart(pos.offsetNode, pos.offset);
+        range.collapse(true);
+      }
+    }
+
+    if (!range || !range.startContainer.textContent) {
+      setHoveredVerse(null);
+      return;
+    }
+
+    const text = range.startContainer.textContent;
+    const offset = range.startOffset;
+
+    // 3. Buscar referencia bíblica bajo el clic using the same regex
+    let match;
+    let foundRef = null;
+    BIBLE_REF_REGEX.lastIndex = 0;
+
+    while ((match = BIBLE_REF_REGEX.exec(text)) !== null) {
+      const start = match.index;
+      const end = match.index + match[0].length;
+      if (offset >= start && offset <= end) {
+        foundRef = match[0];
+        break;
+      }
+    }
+
+    // 4. Si se encontró referencia, cargar y mostrar
+    if (foundRef) {
+      // Si ya está visible esa misma referencia, quizás podríamos ocultarla (toggle), 
+      // pero por ahora 'mostrar' es el comportamiento pedido.
+      try {
+        const { fetchVerseText } = await import('../services/bibleService');
+        const verseText = await fetchVerseText(foundRef, 'rv60');
+
+        if (verseText) {
+          setHoveredVerse({
+            ref: foundRef,
+            text: verseText,
+            position: { x: e.clientX, y: e.clientY }
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching verse click:", err);
+      }
+    } else {
+      // Si hace clic en otro lado que NO es versículo, ocultar tooltip previo
+      setHoveredVerse(null);
+    }
+  }, [hoveredVerse]);
   // --- VERSE PICKER LOGIC ---
   const handleOpenVersePicker = () => {
     setVersePickerStep('books');
@@ -1535,6 +1700,10 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                     contentEditable
                     suppressContentEditableWarning
                     onInput={handleContentChange}
+                    onMouseMove={handleEditorMouseMove}
+                    title="Escribe tu sermón aquí... (Detecta versículos automáticamente)"
+                    onClick={handleEditorClick}
+                    onMouseLeave={handleEditorMouseLeave}
                     className="w-full h-full min-h-[600px] outline-none font-reading leading-loose text-[var(--text-primary)] empty:before:content-[attr(data-placeholder)] empty:before:text-[var(--text-secondary)] [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 text-justify [&_p]:mb-4"
                     data-placeholder={t('editor.placeholder')}
                     style={{
@@ -1545,6 +1714,16 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                 </div>
               </div>
             </div>
+            {/* HOVER TOOLTIP PORTAL */}
+            {hoveredVerse && (
+              <BibleTooltip
+                reference={hoveredVerse.ref}
+                text={hoveredVerse.text}
+                version="RV60"
+                position={hoveredVerse.position}
+                onClose={() => setHoveredVerse(null)}
+              />
+            )}
             <div className="h-14 border-t border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-between px-6 shrink-0">
               <Button variant="outline" className="border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300" onClick={() => { const idx = sermon.sections.findIndex(s => s.id === activeSectionId); if (idx > 0) setActiveSectionId(sermon.sections[idx - 1].id); }} disabled={sermon.sections.findIndex(s => s.id === activeSectionId) === 0}><ChevronLeft className="w-4 h-4 mr-2" /> {t('editor.prev')}</Button>
               <span className="text-sm font-medium text-[var(--text-secondary)]">{sermon.sections.findIndex(s => s.id === activeSectionId) + 1} de {sermon.sections.length}</span>

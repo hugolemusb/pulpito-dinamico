@@ -402,7 +402,8 @@ export const RESOURCES: Record<Language, any> = {
         DESARROLLO: "Cuerpo",
         LLAMADO: "Llamado",
         CIERRE: "Cierre",
-        EXTRA: "Extra"
+        EXTRA: "Extra",
+        VIDA_DIARIA: "Vida Diaria"
       }
     },
     export: {
