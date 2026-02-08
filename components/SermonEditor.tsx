@@ -700,49 +700,60 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       // 1. Mejora: Intentar usar traducción, pero si falla usar query original
       let description = q;
       try {
-        description = await translateForImageSearch(q);
-        description = description.replace(/[^ \w\s,]/gi, ''); // Retain spaces
+        // Solo traducimos si vamos a usar IA o si queremos mejorar la búsqueda en Pexels (aunque Pexels entiende español)
+        // Para simplificar y evitar "mismas imágenes", si es Pexels usamos la query directa si es corta
+        if (visualSource === 'ai') {
+          description = await translateForImageSearch(q);
+          description = description.replace(/[^ \w\s,]/gi, '');
+        }
       } catch (e) {
         console.warn("Translation failed, using original query", e);
       }
 
       const images: string[] = [];
 
-      // 1. PEXELS SEARCH (Si hay API Key)
-      if (pexelsApiKey) {
+      // 1. PEXELS SEARCH (Strict)
+      if (visualSource === 'pexels') {
+        if (!pexelsApiKey) {
+          alert("Para buscar en Pexels, por favor configura tu API Key en el menú de Configuración.");
+          setIsVisualLoading(false);
+          return;
+        }
         try {
-          const pexelsResp = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(description)}&per_page=4&orientation=landscape&locale=es-ES`, {
+          // Usamos la query original 'q' para Pexels si 'description' falló o si preferimos español
+          const queryToUse = visualSource === 'pexels' ? q : description;
+          const pexelsResp = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(queryToUse)}&per_page=4&orientation=landscape&locale=es-ES`, {
             headers: { Authorization: pexelsApiKey }
           });
           if (pexelsResp.ok) {
             const data = await pexelsResp.json();
-            const photos = data.photos.map((p: any) => p.src.medium); // Usamos tamaño medio para rendimiento
-            images.push(...photos);
+            const photos = data.photos.map((p: any) => p.src.medium);
+            if (photos.length === 0) alert("No se encontraron imágenes en Pexels para esta búsqueda.");
+            else images.push(...photos);
           } else {
             console.error("Pexels Error:", pexelsResp.status);
+            alert("Error al conectar con Pexels. Verifica tu API Key.");
           }
         } catch (err) {
           console.error("Error fetching Pexels:", err);
+          alert("Error de red al conectar con Pexels.");
         }
       }
 
-      // 2. POLLINATIONS AI (Fallback o Complemento)
-      // Si tenemos pocas imágenes de Pexels (o ninguna), completamos con AI
-      if (images.length < 4) {
-        const remainingCount = 4 - images.length;
-        // Simplificamos a modelos seguros (turbo/unity) para evitar errores de carga
+      // 2. AI GENERATION (Strict)
+      else {
+        // Generamos 4 variantes
         const aiStyles = [
-          { prompt: "cinematic lighting, biblical art, photorealistic", model: "turbo" },
-          { prompt: "oil painting, dramatic light, concept art", model: "turbo" }, // 'turbo' es rápido y fiable
-          { prompt: "digital art, soft colors, serene", model: "flux" },
-          { prompt: "epical atmosphere, 8k render", model: "flux-realism" }
-        ].slice(0, remainingCount); // Solo generamos las necesarias
+          { prompt: "cinematic lighting, biblical art, photorealistic, 8k", model: "flux-realism" },
+          { prompt: "oil painting, dramatic light, masterpiece, detailed", model: "turbo" },
+          { prompt: "digital art, soft colors, serene, atmosphere", model: "flux" },
+          { prompt: "epical scene, movie still, high quality", model: "turbo" }
+        ];
 
         aiStyles.forEach((style, index) => {
           const finalPrompt = `${description}, ${style.prompt}`;
           const encoded = encodeURIComponent(finalPrompt);
           const seed = Math.floor(Math.random() * 10000) + index;
-          // Aseguramos URLs válidas con modelos específicos
           images.push(`https://image.pollinations.ai/prompt/${encoded}?width=800&height=450&model=${style.model}&nologo=true&seed=${seed}`);
         });
       }
@@ -757,8 +768,20 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
 
   const handleSuggestImages = async () => {
     setIsVisualLoading(true);
-    const textToAnalyze = activeSection.content || sermon.sections.map(s => s.content).join(' ');
-    if (!textToAnalyze || textToAnalyze.length < 10) { alert(t('editor.visual.suggest')); setIsVisualLoading(false); return; }
+    let textToAnalyze = activeSection.content || sermon.sections.map(s => s.content).join(' ');
+
+    // Fallback: Si no hay contenido en secciones, usar Título y Versículo (ideal para auto-sugerencias al inicio)
+    if ((!textToAnalyze || textToAnalyze.length < 10) && (sermon.title || sermon.mainVerseText)) {
+      textToAnalyze = `${sermon.title} ${sermon.mainVerseText}`;
+    }
+
+    if (!textToAnalyze || textToAnalyze.length < 5) {
+      // Si aún así no hay texto suficiente
+      alert("Escribe contenido o un título para sugerir imágenes.");
+      setIsVisualLoading(false);
+      return;
+    }
+
     try {
       const keywords = await extractVisualKeywords(textToAnalyze);
       handleVisualSearch(keywords);
