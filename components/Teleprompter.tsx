@@ -165,36 +165,42 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
 
   // --- SCROLL ENGINE ---
   useEffect(() => {
-    const scroll = (timestamp: number) => {
+    let animationFrameId: number;
+    let lastTime = performance.now();
+
+    const scroll = (currentTime: number) => {
       if (!isPlaying || !scrollRef.current) return;
 
-      if (timestamp - lastScrollTime.current > 16) { // ~60fps cap
-        const pixelSpeed = (speed * 0.5) + 0.2; // Base speed calculation
-        scrollRef.current.scrollTop += pixelSpeed;
-        lastScrollTime.current = timestamp;
+      const deltaTime = currentTime - lastTime;
 
-        // Update metrics less frequently or every frame? Every frame is fine for simple math
-        updateMetrics();
+      if (deltaTime >= 16) { // Cap at ~60fps
+        // Calculate movement: (speed factor) * (time elapsed factor)
+        // Speed 1 = Slow, Speed 10 = Fast
+        // Base pixels per frame at 60fps = 0.5 to 5.0
+        const moveAmount = ((speed * 0.5) + 0.2) * (deltaTime / 16);
+
+        scrollRef.current.scrollTop += moveAmount;
+        lastTime = currentTime;
+
+        // Auto-stop at bottom
+        if (scrollRef.current.scrollTop + scrollRef.current.clientHeight >= scrollRef.current.scrollHeight - 2) {
+          setIsPlaying(false);
+          return;
+        }
       }
 
-      // Stop if reached bottom
-      if (scrollRef.current.scrollTop + scrollRef.current.clientHeight >= scrollRef.current.scrollHeight - 2) {
-        setIsPlaying(false);
-      } else {
-        animationRef.current = requestAnimationFrame(scroll);
-      }
+      animationFrameId = requestAnimationFrame(scroll);
     };
 
     if (isPlaying) {
-      animationRef.current = requestAnimationFrame(scroll);
+      lastTime = performance.now();
+      animationFrameId = requestAnimationFrame(scroll);
     } else {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      // Update once when pausing to ensure accuracy
-      updateMetrics();
+      updateMetrics(); // Update calculations when paused
     }
 
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(animationFrameId);
     };
   }, [isPlaying, speed]);
 
@@ -206,7 +212,7 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
     const el = scrollRef.current;
     el?.addEventListener('scroll', handleScroll);
     return () => el?.removeEventListener('scroll', handleScroll);
-  }, [isPlaying, speed, sermon]);
+  }, [isPlaying, sermon]);
 
   // --- TIMER ---
   useEffect(() => {

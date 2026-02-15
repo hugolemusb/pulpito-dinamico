@@ -53,58 +53,92 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
   tooltip
 }) => {
   const [position, setPosition] = useState({ x: 50, y: 50 });
-  const [fontSize, setFontSize] = useState(40); // Default size in px
+  const [fontSize, setFontSize] = useState(64); // Larger default size
+  const [isSelected, setIsSelected] = useState(false);
   const isDragging = useRef(false);
+  const startPos = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     isDragging.current = true;
+    startPos.current = { x: e.clientX, y: e.clientY };
+    setIsSelected(true);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
-    const delta = e.deltaY < 0 ? 2 : -2;
-    setFontSize(prev => Math.min(200, Math.max(10, prev + delta)));
+    if (isSelected) {
+      const delta = e.deltaY < 0 ? 5 : -5;
+      setFontSize(prev => Math.min(300, Math.max(20, prev + delta)));
+    }
   };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current || !parentRef.current) return;
       const rect = parentRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      setPosition({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+
+      const xDiff = e.clientX - startPos.current.x;
+      const yDiff = e.clientY - startPos.current.y;
+
+      const xPercent = (xDiff / rect.width) * 100;
+      const yPercent = (yDiff / rect.height) * 100;
+
+      setPosition(prev => ({
+        x: Math.max(0, Math.min(100, prev.x + xPercent)),
+        y: Math.max(0, Math.min(100, prev.y + yPercent))
+      }));
+
+      startPos.current = { x: e.clientX, y: e.clientY };
     };
 
     const handleMouseUp = () => {
       isDragging.current = false;
     };
 
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isSelected && !(e.target as Element).closest(`[data-sticker-id="${id}"]`)) {
+        setIsSelected(false);
+      }
+    };
+
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mousedown', handleClickOutside);
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [id, isSelected, parentRef]);
 
   return (
     <div
-      className="absolute hover:brightness-110 transition-filter select-none z-10 flex items-center justify-center leading-none"
+      data-sticker-id={id}
+      className={`absolute hover:brightness-110 transition-filter select-none z-10 flex items-center justify-center leading-none group ${isSelected ? 'ring-2 ring-[var(--accent-color)] ring-offset-2 rounded-lg bg-black/5' : ''}`}
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
         transform: 'translate(-50%, -50%)',
         fontSize: `${fontSize}px`,
-        cursor: 'grab'
+        cursor: isDragging.current ? 'grabbing' : 'grab',
+        padding: '5px'
       }}
       onMouseDown={handleMouseDown}
-      onDoubleClick={() => onRemove(id)}
       onWheel={handleWheel}
-      title={`${tooltip} • Rueda mouse: Tamaño`}
+      title={`${tooltip} • Clic para seleccionar • Rueda: Tamaño • Arrastrar: Mover`}
     >
       {emoji}
+      {isSelected && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors z-20"
+          title="Eliminar Sticker"
+        >
+          <X size={12} />
+        </button>
+      )}
     </div>
   );
 };
@@ -145,6 +179,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   onOpenTeleprompter
 }) => {
   const { t, language } = useTranslation();
+  const [isReadOnly, setIsReadOnly] = useState(false); // Keyboard lock state
 
   // --- ESTADO PRINCIPAL ---
   const [sermon, setSermon] = useState<Sermon>(() => {
@@ -230,6 +265,64 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
       localStorage.removeItem('pexels_api_key');
     }
   }, [pexelsApiKey]);
+
+  // DRAG AND DROP STATE
+  const [draggedSectionIndex, setDraggedSectionIndex] = useState<number | null>(null);
+
+  // --- IMAGES HANDLERS ---
+  const handleImageSearch = async () => {
+    if (!visualQuery.trim()) return;
+    setIsVisualLoading(true);
+    setSearchImages([]);
+
+    try {
+      if (visualSource === 'pexels' && pexelsApiKey) {
+        const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(visualQuery)}&per_page=9&locale=es-ES`, {
+          headers: { Authorization: pexelsApiKey }
+        });
+        const data = await res.json();
+        if (data.photos) {
+          setSearchImages(data.photos.map((p: any) => p.src.medium));
+        }
+      } else {
+        // Fallback or AI generation (simulated)
+        // For now, let's notify if no key
+        if (visualSource === 'pexels' && !pexelsApiKey) {
+          alert("Por favor configura tu API Key de Pexels en Configuración.");
+          setIsVisualLoading(false);
+          return;
+        }
+        // AI Simulation/Unsplash fallback could go here
+        alert("Búsqueda IA no disponible por el momento. Usa Pexels.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error buscando imágenes.");
+    } finally {
+      setIsVisualLoading(false);
+    }
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedSectionIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedSectionIndex === null || draggedSectionIndex === index) return;
+
+    const newSections = [...sermon.sections];
+    const draggedItem = newSections[draggedSectionIndex];
+    newSections.splice(draggedSectionIndex, 1);
+    newSections.splice(index, 0, draggedItem);
+
+    setSermon(prev => ({ ...prev, sections: newSections }));
+    setDraggedSectionIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedSectionIndex(null);
+  };
 
   // AUTO-SUGGEST IMAGES ON CONTEXT
   useEffect(() => {
@@ -388,14 +481,19 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     }
   }, [initialSermonData]);
 
+  // FIX: Timer updates immediately when sermon sections change duration
   useEffect(() => {
-    const total = sermon.sections.reduce((acc, curr) => acc + curr.durationMin, 0);
+    const total = sermon.sections.reduce((acc, curr) => acc + (parseInt(curr.durationMin.toString()) || 0), 0);
     const totalSeconds = total * 60;
     setCurrentTotalDuration(totalSeconds);
+
+    // Only reset timer if it's NOT running and has 0 time left, OR if the user explicitly wants sync
+    // But for "Adjusting clock", we usually want the total to update
     if (!timerState.isRunning && timerState.timeLeft === 0 && totalSeconds > 0) {
       onResetTimer(totalSeconds);
     }
-  }, [sermon.sections]);
+    // Update the total duration helper if needed for display
+  }, [sermon.sections]); // This dependency is correct, checks content of sections array
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatHistory, rightSidebarOpen]);
 
@@ -1532,7 +1630,11 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       setLeftSidebarOpen(false);
                     }
                   }}
-                  className={`group p-3 rounded-lg border-l-4 ${getBorderColor(section.type)} border border-transparent cursor-pointer transition-all ${activeSectionId === section.id ? 'bg-[var(--bg-tertiary)] shadow-sm' : 'hover:bg-[var(--bg-tertiary)] hover:border-transparent'}`}
+                  onDragOver={(e) => handleDragOver(e, sermon.sections.findIndex(s => s.id === section.id))}
+                  draggable={!timerState.isRunning}
+                  onDragStart={() => handleDragStart(sermon.sections.findIndex(s => s.id === section.id))}
+                  onDragEnd={handleDragEnd}
+                  className={`group p-3 rounded-lg border-l-4 ${getBorderColor(section.type)} border border-transparent cursor-pointer transition-all ${activeSectionId === section.id ? 'bg-[var(--bg-tertiary)] shadow-sm' : 'hover:bg-[var(--bg-tertiary)] hover:border-transparent'} ${draggedSectionIndex === sermon.sections.findIndex(s => s.id === section.id) ? 'opacity-50' : ''}`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -1702,7 +1804,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                   <div
                     key={activeSection.id + editorVersion}
                     ref={contentEditableRef}
-                    contentEditable
+                    contentEditable={!isReadOnly}
                     suppressContentEditableWarning
                     onInput={handleContentChange}
                     onMouseMove={handleEditorMouseMove}
@@ -1967,6 +2069,33 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                           className="w-full p-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded text-xs text-[var(--text-primary)] resize-none"
                           rows={2}
                         />
+
+                        {/* SEARCH INPUT */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={visualQuery}
+                            onChange={(e) => setVisualQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleImageSearch()}
+                            placeholder="Buscar fotos (Ej: Cruz, Cielo)..."
+                            className="flex-1 p-2 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded text-xs text-[var(--text-primary)]"
+                          />
+                          <Button size="sm" onClick={handleImageSearch} disabled={isVisualLoading}>
+                            {isVisualLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                          </Button>
+                        </div>
+
+                        {/* RESULTS GRID */}
+                        {searchImages.length > 0 && (
+                          <div className="grid grid-cols-3 gap-1 max-h-[120px] overflow-y-auto">
+                            {searchImages.map((src, i) => (
+                              <button key={i} onClick={() => { setSelectedImage(src); setVisualBgColor('transparent'); }} className="relative aspect-square overflow-hidden rounded hover:opacity-80 border border-transparent hover:border-blue-500">
+                                <img src={src} alt="Result" className="w-full h-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="flex justify-between items-center">
                           <button onClick={handlePasteVerse} className="text-xs text-blue-500 hover:underline">{t('editor.visual.paste_verse')}</button>
                           <div className="flex gap-1 items-center flex-wrap justify-end">
