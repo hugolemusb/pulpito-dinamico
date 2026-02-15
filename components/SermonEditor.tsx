@@ -8,11 +8,11 @@ import { speakText, stopAudio, stripHtmlForAudio, splitTextIntoChunks, isSpeakin
 import { useTranslation } from '../context/LanguageContext';
 import {
   Church, Clock, RotateCcw, Play, Pause, PanelRight,
-  ChevronLeft, ChevronRight, Plus, Trash2, GripVertical, Search,
+  ChevronLeft, ChevronRight, Trash2, GripVertical, Search,
   Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, FileText, Presentation,
   Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
   Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, ChevronUp, User, MonitorPlay, HeartHandshake, Info
+  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, ChevronUp, User, MonitorPlay, HeartHandshake, Info, Plus, Minus, Lock, Unlock
 } from 'lucide-react';
 
 interface SermonEditorProps {
@@ -58,6 +58,17 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
   const isDragging = useRef(false);
   const startPos = useRef({ x: 0, y: 0 });
 
+  const increaseSize = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setFontSize(prev => Math.min(300, prev + 10));
+  };
+
+  const decreaseSize = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setFontSize(prev => Math.max(20, prev - 10));
+  };
+
+  // Mouse Handlers
   // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -173,13 +184,33 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
     >
       {emoji}
       {isSelected && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onRemove(id); }}
-          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors z-20"
-          title="Eliminar Sticker"
-        >
-          <X size={12} />
-        </button>
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); onRemove(id); }}
+            className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors z-20"
+            title="Eliminar Sticker"
+          >
+            <X size={12} />
+          </button>
+
+          {/* Resize Controls for Touch */}
+          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2 bg-black/50 rounded-full p-1 backdrop-blur-sm z-20">
+            <button
+              onMouseDown={decreaseSize}
+              onTouchStart={decreaseSize}
+              className="p-1 text-white hover:bg-white/20 rounded-full"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <button
+              onMouseDown={increaseSize}
+              onTouchStart={increaseSize}
+              className="p-1 text-white hover:bg-white/20 rounded-full"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
@@ -231,6 +262,9 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     return saved ? JSON.parse(saved) : createFreshSermon(t);
   });
 
+  // Derived state for Timer (Fixing the update bug)
+  const currentTotalDuration = sermon.sections.reduce((acc, curr) => acc + (curr.durationMin || 0), 0);
+
   const [activeSectionId, setActiveSectionId] = useState<string>(() => {
     return sermon.sections.length > 0 ? sermon.sections[0].id : '';
   });
@@ -243,7 +277,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [rightTab, setRightTab] = useState<'bible' | 'advisor' | 'visual' | 'avisos'>('bible');
-  const [currentTotalDuration, setCurrentTotalDuration] = useState(0);
+  // const [currentTotalDuration, setCurrentTotalDuration] = useState(0); // Removed in favor of derived state
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -528,15 +562,13 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   useEffect(() => {
     const total = sermon.sections.reduce((acc, curr) => acc + (parseInt(curr.durationMin.toString()) || 0), 0);
     const totalSeconds = total * 60;
-    setCurrentTotalDuration(totalSeconds);
 
     // Only reset timer if it's NOT running and has 0 time left, OR if the user explicitly wants sync
     // But for "Adjusting clock", we usually want the total to update
     if (!timerState.isRunning && timerState.timeLeft === 0 && totalSeconds > 0) {
       onResetTimer(totalSeconds);
     }
-    // Update the total duration helper if needed for display
-  }, [sermon.sections]); // This dependency is correct, checks content of sections array
+  }, [sermon.sections, timerState.isRunning, timerState.timeLeft, onResetTimer]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatHistory, rightSidebarOpen]);
 
@@ -1633,6 +1665,17 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
             </div>
 
             <div className="hidden lg:flex gap-1 ml-2 border-l border-[var(--border-color)] pl-2">
+              {/* LOCK BUTTON - VISIBLE ON ALL SCREENS */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsReadOnly(!isReadOnly)}
+                title={isReadOnly ? "Desbloquear Edición" : "Bloquear Edición (Solo Lectura)"}
+                className={`relative z-50 ${isReadOnly ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
+              >
+                {isReadOnly ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              </Button>
+
               {/* TELEPROMPTER BUTTON */}
               {onOpenTeleprompter && (
                 <Button variant="outline" size="icon" onClick={onOpenTeleprompter} title="Teleprompter" className="text-green-600 border-green-200 hover:bg-green-50 hover:border-green-300">
@@ -1723,10 +1766,6 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       onChange={(e) => {
                         const newDuration = parseInt(e.target.value) || 0;
                         handleUpdateSection(section.id, { durationMin: newDuration });
-                        // Force recalculation of total duration
-                        const newSections = sermon.sections.map(s => s.id === section.id ? { ...s, durationMin: newDuration } : s);
-                        const newTotal = newSections.reduce((acc, curr) => acc + (curr.durationMin || 0), 0);
-                        setCurrentTotalDuration(newTotal);
                       }}
                       className="w-12 bg-transparent text-xs border-b border-[var(--border-color)] focus:border-[var(--accent-color)] focus:outline-none text-center"
                       disabled={timerState.isRunning}

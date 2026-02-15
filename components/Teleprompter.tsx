@@ -168,32 +168,23 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
     let animationFrameId: number;
     let lastTime = performance.now();
 
-    const scroll = (currentTime: number) => {
+    const scroll = () => {
       if (!isPlaying || !scrollRef.current) return;
 
-      const deltaTime = currentTime - lastTime;
+      // Simple robust scroll increment based on speed
+      const moveAmount = (speed * 0.3) + 0.1;
+      scrollRef.current.scrollTop += moveAmount;
 
-      if (deltaTime >= 16) { // Cap at ~60fps
-        // Calculate movement: (speed factor) * (time elapsed factor)
-        // Speed 1 = Slow, Speed 10 = Fast
-        // Base pixels per frame at 60fps = 0.5 to 5.0
-        const moveAmount = ((speed * 0.5) + 0.2) * (deltaTime / 16);
-
-        scrollRef.current.scrollTop += moveAmount;
-        lastTime = currentTime;
-
-        // Auto-stop at bottom (relaxed condition)
-        if (scrollRef.current.scrollTop + scrollRef.current.clientHeight >= scrollRef.current.scrollHeight - 10) {
-          setIsPlaying(false);
-          return;
-        }
+      // Check for bottom with buffer
+      if (scrollRef.current.scrollHeight - (scrollRef.current.scrollTop + scrollRef.current.clientHeight) < 1) {
+        setIsPlaying(false);
+        return;
       }
 
       animationFrameId = requestAnimationFrame(scroll);
     };
 
     if (isPlaying) {
-      lastTime = performance.now();
       animationFrameId = requestAnimationFrame(scroll);
     } else {
       updateMetrics(); // Update calculations when paused
