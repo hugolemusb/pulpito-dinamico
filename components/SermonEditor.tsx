@@ -12,7 +12,7 @@ import {
   Sparkles, BookOpen, MessageCircle, Image as ImageIcon, Send, X, Settings, FileText, Presentation,
   Loader2, FileType, Printer, Calendar as CalendarIcon, MapPin, Download, Wand2, Smile, Move,
   Save, FolderOpen, AlertTriangle, Bell, Cloud, Upload, HardDrive, RefreshCw, Type as TypeIcon, Palette, Copy, Quote,
-  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, User, MonitorPlay, HeartHandshake, Info
+  Bold, Italic, Underline, List, ListOrdered, Volume2, StopCircle, Headphones, SkipBack, SkipForward, FileJson, Eraser, FilePlus, RefreshCcw, Check, MousePointerClick, ChevronDown, ChevronUp, User, MonitorPlay, HeartHandshake, Info
 } from 'lucide-react';
 
 interface SermonEditorProps {
@@ -46,18 +46,19 @@ interface DraggableIconProps {
 }
 
 const DraggableIcon: React.FC<DraggableIconProps> = ({
-  emoji,
   id,
+  emoji,
   onRemove,
   parentRef,
   tooltip
 }) => {
   const [position, setPosition] = useState({ x: 50, y: 50 });
-  const [fontSize, setFontSize] = useState(64); // Larger default size
+  const [fontSize, setFontSize] = useState(64);
   const [isSelected, setIsSelected] = useState(false);
   const isDragging = useRef(false);
   const startPos = useRef({ x: 0, y: 0 });
 
+  // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -74,22 +75,51 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
     }
   };
 
+  // Touch Handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    isDragging.current = true;
+    const touch = e.touches[0];
+    startPos.current = { x: touch.clientX, y: touch.clientY };
+    setIsSelected(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging.current || !parentRef.current) return;
+    const touch = e.touches[0];
+
+    const rect = parentRef.current.getBoundingClientRect();
+    const xDiff = touch.clientX - startPos.current.x;
+    const yDiff = touch.clientY - startPos.current.y;
+
+    const xPercent = (xDiff / rect.width) * 100;
+    const yPercent = (yDiff / rect.height) * 100;
+
+    setPosition(prev => ({
+      x: Math.max(0, Math.min(100, prev.x + xPercent)),
+      y: Math.max(0, Math.min(100, prev.y + yPercent))
+    }));
+
+    startPos.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = () => {
+    isDragging.current = false;
+  };
+
+  // Global Mouse Events
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current || !parentRef.current) return;
       const rect = parentRef.current.getBoundingClientRect();
-
       const xDiff = e.clientX - startPos.current.x;
       const yDiff = e.clientY - startPos.current.y;
-
       const xPercent = (xDiff / rect.width) * 100;
       const yPercent = (yDiff / rect.height) * 100;
-
       setPosition(prev => ({
         x: Math.max(0, Math.min(100, prev.x + xPercent)),
         y: Math.max(0, Math.min(100, prev.y + yPercent))
       }));
-
       startPos.current = { x: e.clientX, y: e.clientY };
     };
 
@@ -97,21 +127,30 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
       isDragging.current = false;
     };
 
+    if (isSelected) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isSelected, parentRef]);
+
+  // Click Outside
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (isSelected && !(e.target as Element).closest(`[data-sticker-id="${id}"]`)) {
         setIsSelected(false);
       }
     };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('mousedown', handleClickOutside);
+    if (isSelected) {
+      window.addEventListener('mousedown', handleClickOutside);
+    }
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [id, isSelected, parentRef]);
+  }, [isSelected, id]);
 
   return (
     <div
@@ -126,6 +165,9 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
         padding: '5px'
       }}
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onWheel={handleWheel}
       title={`${tooltip} • Clic para seleccionar • Rueda: Tamaño • Arrastrar: Mover`}
     >
@@ -142,6 +184,7 @@ const DraggableIcon: React.FC<DraggableIconProps> = ({
     </div>
   );
 };
+
 
 const createFreshSermon = (t: (key: string) => string): Sermon => {
   const timestamp = Date.now();
@@ -1641,15 +1684,53 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
                       <h4 className={`text-sm font-semibold ${activeSectionId === section.id ? 'text-[var(--accent-color)]' : 'text-[var(--text-primary)]'}`}>{section.title}</h4>
                       <span className="text-[10px] text-[var(--text-secondary)] font-mono">{t('structure.type.' + section.type)}</span>
                     </div>
-                    {!timerState.isRunning && (
-                      <div onClick={(e) => { e.stopPropagation(); handleDeleteSection(section.id); }}>
-                        <button className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 p-1"><Trash2 className="w-3 h-3" /></button>
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-1 items-center" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-0.5"
+                        onClick={() => {
+                          const idx = sermon.sections.findIndex(s => s.id === section.id);
+                          if (idx > 0) {
+                            const newSections = [...sermon.sections];
+                            [newSections[idx], newSections[idx - 1]] = [newSections[idx - 1], newSections[idx]];
+                            setSermon(prev => ({ ...prev, sections: newSections }));
+                          }
+                        }}
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-0.5"
+                        onClick={() => {
+                          const idx = sermon.sections.findIndex(s => s.id === section.id);
+                          if (idx < sermon.sections.length - 1) {
+                            const newSections = [...sermon.sections];
+                            [newSections[idx], newSections[idx + 1]] = [newSections[idx + 1], newSections[idx]];
+                            setSermon(prev => ({ ...prev, sections: newSections }));
+                          }
+                        }}
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => handleDeleteSection(section.id)} className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-red-400 hover:text-red-600 p-0.5 mt-1"><Trash2 className="w-3 h-3" /></button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <Clock className="w-3 h-3 text-[var(--text-secondary)]" />
-                    <input onClick={(e) => e.stopPropagation()} type="number" value={section.durationMin} onChange={(e) => handleUpdateSection(section.id, { durationMin: parseInt(e.target.value) || 0 })} className="w-12 bg-transparent text-xs border-b border-[var(--border-color)] focus:border-[var(--accent-color)] focus:outline-none text-center" disabled={timerState.isRunning} />
+                    <input
+                      onClick={(e) => e.stopPropagation()}
+                      type="number"
+                      value={section.durationMin}
+                      onChange={(e) => {
+                        const newDuration = parseInt(e.target.value) || 0;
+                        handleUpdateSection(section.id, { durationMin: newDuration });
+                        // Force recalculation of total duration
+                        const newSections = sermon.sections.map(s => s.id === section.id ? { ...s, durationMin: newDuration } : s);
+                        const newTotal = newSections.reduce((acc, curr) => acc + (curr.durationMin || 0), 0);
+                        setCurrentTotalDuration(newTotal);
+                      }}
+                      className="w-12 bg-transparent text-xs border-b border-[var(--border-color)] focus:border-[var(--accent-color)] focus:outline-none text-center"
+                      disabled={timerState.isRunning}
+                    />
                     <span className="text-xs text-[var(--text-secondary)]">min</span>
                   </div>
                 </div>

@@ -182,8 +182,8 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
         scrollRef.current.scrollTop += moveAmount;
         lastTime = currentTime;
 
-        // Auto-stop at bottom
-        if (scrollRef.current.scrollTop + scrollRef.current.clientHeight >= scrollRef.current.scrollHeight - 2) {
+        // Auto-stop at bottom (relaxed condition)
+        if (scrollRef.current.scrollTop + scrollRef.current.clientHeight >= scrollRef.current.scrollHeight - 10) {
           setIsPlaying(false);
           return;
         }
