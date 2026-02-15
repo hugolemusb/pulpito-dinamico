@@ -163,17 +163,25 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
     }
   };
 
+  // Sub-pixel scroll accumulator
+  const virtualScrollTop = useRef(0);
+
   // --- SCROLL ENGINE ---
   useEffect(() => {
     let animationFrameId: number;
-    let lastTime = performance.now();
 
     const scroll = () => {
       if (!isPlaying || !scrollRef.current) return;
 
-      // Simple robust scroll increment based on speed
-      const moveAmount = (speed * 0.3) + 0.1;
-      scrollRef.current.scrollTop += moveAmount;
+      // Calculate move amount (pixels per frame)
+      // Speed 1 = ~0.3px/frame, Speed 10 = ~3.3px/frame
+      const moveAmount = (speed * 0.35) + 0.1;
+
+      // Update virtual float position
+      virtualScrollTop.current += moveAmount;
+
+      // Apply integer position to DOM
+      scrollRef.current.scrollTop = Math.floor(virtualScrollTop.current);
 
       // Check for bottom with buffer
       if (scrollRef.current.scrollHeight - (scrollRef.current.scrollTop + scrollRef.current.clientHeight) < 1) {
@@ -185,6 +193,10 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
     };
 
     if (isPlaying) {
+      // Sync virtual position with actual DOM position on start
+      if (scrollRef.current) {
+        virtualScrollTop.current = scrollRef.current.scrollTop;
+      }
       animationFrameId = requestAnimationFrame(scroll);
     } else {
       updateMetrics(); // Update calculations when paused
@@ -198,7 +210,13 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
   // Recalculate metrics when manual scroll or resize happens
   useEffect(() => {
     const handleScroll = () => {
-      if (!isPlaying) updateMetrics();
+      if (!isPlaying) {
+        updateMetrics();
+        // Sync virtual scroll position
+        if (scrollRef.current) {
+          virtualScrollTop.current = scrollRef.current.scrollTop;
+        }
+      }
     };
     const el = scrollRef.current;
     el?.addEventListener('scroll', handleScroll);
@@ -373,7 +391,11 @@ export const Teleprompter: React.FC<TeleprompterProps> = ({ onBack, contentType 
         <div
           ref={scrollRef}
           className={`flex-1 h-full overflow-y-auto no-scrollbar scroll-smooth outline-none ${isMirrored ? 'scale-x-[-1]' : ''}`}
-          style={{ paddingLeft: `${margin}%`, paddingRight: `${margin}%` }}
+          style={{
+            paddingLeft: `${margin}%`,
+            paddingRight: `${margin}%`,
+            WebkitOverflowScrolling: 'touch' // Force hardware acceleration
+          }}
         >
           {/* Top Padding for initial start */}
           <div className="h-[50vh]"></div>

@@ -109,6 +109,22 @@ function AppContent() {
     }));
   };
 
+  // New function to update total duration on the fly without stopping the timer
+  const updateTimerTotal = (newTotal: number) => {
+    setTimerState(prev => {
+      // If the duration hasn't changed, do nothing
+      if (prev.totalDuration === newTotal) return prev;
+
+      const diff = newTotal - prev.totalDuration;
+      return {
+        ...prev,
+        totalDuration: newTotal,
+        // If running, add the difference (e.g. +5 mins). If stopped, just reset to new total.
+        timeLeft: prev.isRunning ? prev.timeLeft + diff : newTotal
+      };
+    });
+  };
+
   const toggleTheme = () => {
     setTheme(prev => {
       if (prev === 'night') return 'day';
@@ -147,6 +163,7 @@ function AppContent() {
           onToggleTimer={toggleTimer}
           onResetTimer={resetTimer}
           onResetTimerOnly={resetTimerOnly}
+          onUpdateTimerTotal={updateTimerTotal}
           textSettings={textSettings}
           onOpenTeleprompter={() => handleNavigate('teleprompter')}
         />;

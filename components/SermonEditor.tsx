@@ -21,6 +21,7 @@ interface SermonEditorProps {
   onToggleTimer: () => void;
   onResetTimer: (duration: number) => void;
   onResetTimerOnly: () => void;
+  onUpdateTimerTotal: (duration: number) => void;
   initialSermonData?: Sermon | null;
   textSettings: TextSettings;
   onOpenTeleprompter?: () => void;
@@ -248,6 +249,7 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
   onToggleTimer,
   onResetTimer,
   onResetTimerOnly,
+  onUpdateTimerTotal,
   initialSermonData,
   textSettings,
   onOpenTeleprompter
@@ -563,12 +565,14 @@ export const SermonEditor: React.FC<SermonEditorProps> = ({
     const total = sermon.sections.reduce((acc, curr) => acc + (parseInt(curr.durationMin.toString()) || 0), 0);
     const totalSeconds = total * 60;
 
-    // Only reset timer if it's NOT running and has 0 time left, OR if the user explicitly wants sync
-    // But for "Adjusting clock", we usually want the total to update
+    // Call parent updater to keep global timer in sync LIVE
+    onUpdateTimerTotal(totalSeconds);
+
+    // Initial reset if needed
     if (!timerState.isRunning && timerState.timeLeft === 0 && totalSeconds > 0) {
       onResetTimer(totalSeconds);
     }
-  }, [sermon.sections, timerState.isRunning, timerState.timeLeft, onResetTimer]);
+  }, [sermon.sections, timerState.isRunning, timerState.timeLeft, onResetTimer, onUpdateTimerTotal]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatHistory, rightSidebarOpen]);
 
